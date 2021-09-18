@@ -1,0 +1,24 @@
+Metadata-Version: 2.1
+Name: silvio
+Version: 0.0.4
+Summary: silvio is an environment for Simulation of Virtual Organisms. silvio contains several linked microbial models.
+Home-page: https://git.rwth-aachen.de/ulf.liebal/silvio.git
+Author: Ulf Liebal, Rafael Schimassek
+Author-email: ulf.liebal@rwth-aachen.de
+License: UNKNOWN
+Keywords: biotechnology,microbiology,virtual cell,systems biology
+Platform: UNKNOWN
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# silvio
+
+silvio is an environment to combine microbiological models to simulate virtual cells. 
+
+Authors: Ulf Liebal, Rafael Schimassek, Lars Blank
+Contact: ulf.liebal@rwth-aachen.de
+Licence: MIT Licence
+
+
+

@@ -1,0 +1,7 @@
+.ipynb_checkpoints/
+__pycache__/
+*~*
+dist
+# Ignore the generated API files and build output of sphinx documentation.
+docs/_build
+docs/api/*

@@ -1,0 +1,9 @@
+biopython>=1.79
+dataclasses>=0.8
+joblib>=1.0.1
+matplotlib>=3.3.4
+numpy>=1.18.0
+pandas>=1.2.1
+pickleshare>=0.7.5
+scipy>=1.6.0
+typing-extensions>=3.7.4
