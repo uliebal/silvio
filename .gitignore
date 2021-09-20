@@ -2,6 +2,8 @@
 __pycache__/
 *~*
 dist
+build
+*.pyc
 src/silvio.egg-info
 # Ignore the generated API files and build output of sphinx documentation.
 docs/_build
