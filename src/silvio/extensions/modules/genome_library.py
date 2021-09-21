@@ -10,8 +10,7 @@ from typing import Optional, List, NamedTuple
 
 from numpy.random import Generator
 from Bio.Seq import Seq
-# from Bio.Blast.Record import Alignment
-from Bio.Align import PairwiseAligner
+from Bio.Align import PairwiseAligner # Bio.Blast.Record.Alignment
 
 from ...host import Host
 from ...module import Module
