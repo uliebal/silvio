@@ -3,6 +3,7 @@ __pycache__/
 *~*
 dist
 build
+.vscode
 *.pyc
 src/silvio.egg-info
 # Ignore the generated API files and build output of sphinx documentation.
