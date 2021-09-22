@@ -12,7 +12,7 @@ observable that can be used by each module to communicate with other modules.
 from typing import List, Callable, NamedTuple, Optional, Type
 
 from .events import Event
-from .random import Generator
+from .random import Generator, pick_seed
 from .utils import coalesce
 
 
@@ -72,7 +72,7 @@ class Host :
         self.event_log = []
         self.clone_counter = 0
         self.name = 'unnamed' # start unnamed and get a name later in this constructor
-        self.rnd_seed = None
+        self.rnd_seed = pick_seed() # by default, use a random seed
         self.rnd_counter = 0
 
 

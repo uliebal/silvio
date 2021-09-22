@@ -10,8 +10,7 @@ from typing import Optional, List, NamedTuple
 
 from numpy.random import Generator
 from Bio.Seq import Seq
-# from Bio.Blast.Record import Alignment
-from Bio.Align import PairwiseAligner
+from Bio.Align import PairwiseAligner # Bio.Blast.Record.Alignment
 
 from ...host import Host
 from ...module import Module
@@ -154,7 +153,7 @@ class GenomeLibrary (Module) :
 def make_background_seq ( rnd:Generator, size:int, gc_content:float ) -> Seq :
     gc = gc_content
     at = 1 - gc_content
-    seq_array = rnd.choice( ["A","C","G","T"], size=size, p=[at/2,gc/2,gc/2,at/2] ) # 'ATCG' is ArrayLike
+    seq_array = rnd.pick_choices( choices=["A","C","G","T"], amount=size, weights=[at/2,gc/2,gc/2,at/2] ) # 'ATCG' is ArrayLike
     return Seq( "".join(seq_array) )
 
 

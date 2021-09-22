@@ -5,7 +5,7 @@ The number inside this module (example: a size of a cell) will increase with the
 
 from ...host import Host
 from ...module import Module
-from ..genome.events import InsertGeneEvent, RemoveGeneEvent
+from ..events import InsertGeneEvent, RemoveGeneEvent
 
 
 
