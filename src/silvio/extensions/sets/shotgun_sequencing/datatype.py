@@ -9,11 +9,13 @@ from ...common import Base, ReadMethod
 
 
 
+
+
 BaseProbDict = Dict[Base,List[float]]
 
 
 
-class Scaffold (NamedTuple) :
+class Scaffold ( NamedTuple ) :
     """
     A sequence of bases, with added information about read quality and relative distances.
     Read quality is expressed in a ratio between 0 (worst) and 1 (best).
@@ -32,14 +34,14 @@ class Scaffold (NamedTuple) :
 
 
 
-class LocalizedSequence (NamedTuple) :
+class LocalizedSequence ( NamedTuple ) :
     """ A sequence with a starting position. """
     sequence : Seq
     locus : int
 
 
 
-class EstimatedSequence :
+class EstimatedSequence ( ) :
     """
     An EstimatedSequence can hold a base probability for each of the positions in the gene sequence.
     Assemblers that split their certainty of a base call between two or more different bases can
