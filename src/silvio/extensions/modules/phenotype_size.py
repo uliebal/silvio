@@ -5,34 +5,44 @@ The number inside this module (example: a size of a cell) will increase with the
 
 from ...host import Host
 from ...module import Module
-from ..events import InsertGeneEvent, RemoveGeneEvent
+from ...events import EventEmitter, EventLogger
+from ..all_events import InsertGeneEvent, RemoveGeneEvent
 
 
 
 class PhenotypeSize (Module) :
 
-    host: Host
-
     size: int
 
 
 
-    def __init__ ( self, host:Host, size:int = 0 ) :
-        super().__init__(host)
-
+    def make ( self, size:int = 0 ) -> None :
         self.size = 0
 
-        self.host.observe( InsertGeneEvent, self.listen_insert_gene )
-        self.host.observe( RemoveGeneEvent, self.listen_remove_gene )
+
+
+    def copy ( self, ref:'PhenotypeSize' ) -> None :
+        self.size = ref.size
 
 
 
-    def listen_insert_gene ( self, event:InsertGeneEvent ) -> None :
+    def bind ( self, host:Host ) -> None :
+        host.observe( InsertGeneEvent, self.listen_insert_gene )
+        host.observe( RemoveGeneEvent, self.listen_remove_gene )
+
+
+
+    def sync ( self, emit:EventEmitter, log:EventLogger ) -> None :
+        pass # Nothing to sync.
+
+
+
+    def listen_insert_gene ( self, event:InsertGeneEvent, emit:EventEmitter, log:EventLogger ) -> None :
         self.size += 1
-        return ("Incremented size by 1 on PhenotypeSize.")
+        log("PhenotypeSize: incremented size by 1")
 
 
 
-    def listen_remove_gene ( self, event:RemoveGeneEvent ) -> None :
+    def listen_remove_gene ( self, event:RemoveGeneEvent, emit:EventEmitter, log:EventLogger ) -> None :
         self.size -= 1
-        return ("Decremented size by 1 on PhenotypeSize.")
+        log("PhenotypeSize: decremented size by 1")

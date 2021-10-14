@@ -20,6 +20,7 @@ setuptools.setup(
     python_requires='>=3.9',
     install_requires=[
         'biopython >= 1.79',
+        'cobra >= 0.22',
         'joblib >= 1.0.1',
         'matplotlib >= 3.3.4',
         'numpy >= 1.18.0',

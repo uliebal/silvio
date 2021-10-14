@@ -3,7 +3,7 @@ Events that serve as communication for and between host modules.
 """
 
 from abc import ABC
-
+from typing import Callable
 
 
 class Event (ABC) :
@@ -13,7 +13,6 @@ class Event (ABC) :
     pass
 
 
-# TODO: Try to replace initialize event with init code only.
-# @dataclass
-# class InitializeEvent ( Event ) :
-#     pass
+EventEmitter = Callable[[Event],None]
+
+EventLogger = Callable[[str],None]

@@ -14,10 +14,11 @@ from Bio.Align import PairwiseAligner # Bio.Blast.Record.Alignment
 
 from ...host import Host
 from ...module import Module
-from ...utils import alldef
+from ...events import EventEmitter, EventLogger
+from ...utils import alldef, coalesce, first
 from ..records.gene.gene import Gene
 from ..records.gene.localized_gene import LocalizedGene
-from ..events import InsertGeneEvent, RemoveGeneEvent
+from ..all_events import InsertGeneEvent, RemoveGeneEvent, AlterGenePromoterEvent
 
 
 
@@ -42,28 +43,27 @@ class GenomeLibrary (Module) :
 
     # bg_gc_content: float # Ratio of GC-content in the background genome. Range: [0,1]
 
-    locgenes: List[LocalizedGene]
-
     sequence: Seq
 
+    locgenes: List[LocalizedGene]
 
 
-    def __init__ (
-        self, host:Host,
+
+    def make ( self,
         sequence:Optional[Seq] = None,
         bg_size:Optional[int] = None,
         bg_gc_content:Optional[float] = None,
+        bg_rnd:Optional[Generator] = None,
         locgenes:List[LocalizedGene] = []
-    ) :
-        super().__init__(host)
+    ) -> None :
 
         # Init 1: pre-defined sequence
         if alldef( sequence ) :
             self.sequence = sequence
 
         # Init 2: new sequence
-        elif alldef( bg_size, bg_gc_content ) :
-            self.sequence = make_background_seq( rnd=host.make_generator(), size=bg_size, gc_content=bg_gc_content )
+        elif alldef( bg_rnd, bg_size, bg_gc_content ) :
+            self.sequence = make_background_seq( size=bg_size, gc_content=bg_gc_content, rnd=bg_rnd )
 
         # Failed Init
         else :
@@ -78,8 +78,23 @@ class GenomeLibrary (Module) :
             )
             self.locgenes.append( new_loc_gene )
 
-        self.host.observe( InsertGeneEvent, self.listen_insert_gene )
-        self.host.observe( RemoveGeneEvent, self.listen_remove_gene )
+
+
+    def copy ( self, ref:'GenomeLibrary' ) -> None :
+        self.sequence = ref.sequence
+        self.locgenes = ref.locgenes.copy()
+
+
+
+    def bind ( self, host:Host ) -> None :
+        host.observe( InsertGeneEvent, self.listen_insert_gene )
+        host.observe( RemoveGeneEvent, self.listen_remove_gene )
+        host.observe( AlterGenePromoterEvent, self.listen_alter_gene_promoter )
+
+
+
+    def sync ( self, emit:EventEmitter, log:EventLogger ) -> None :
+        pass # Nothing to sync.
 
 
 
@@ -89,18 +104,40 @@ class GenomeLibrary (Module) :
 
 
 
-    def listen_insert_gene ( self, event:InsertGeneEvent ) -> None :
-        self.insert_gene( gene=event.gene, loc=event.loc )
-        return ( "Added gene={} loc={} to the GenomeLibrary.".format(
-            event.gene.name, event.loc
+    def listen_insert_gene ( self, event:InsertGeneEvent, emit:EventEmitter, log:EventLogger ) -> None :
+
+        # If no locus is specified, then append it to the sequence.
+        loc:int = coalesce( event.locus, len(self.sequence) )
+
+        self.insert_gene( gene=event.gene, loc=loc )
+        log( "GenomeLibrary: added gene={} loc={}".format(
+            event.gene.name, event.locus
         ))
 
 
 
-    def listen_remove_gene ( self, event:RemoveGeneEvent ) -> None :
+    def listen_remove_gene ( self, event:RemoveGeneEvent, emit:EventEmitter, log:EventLogger ) -> None :
         """ Remove a gene from the library and sequence. """
         del self.genes[event.gene]
-        return ( "Removed gene={} from the GenomeLibrary.".format(event.gene.name) )
+        log( "GenomeLibrary: removed gene={}".format(event.gene.name) )
+
+
+
+    def listen_alter_gene_promoter ( self, event:AlterGenePromoterEvent, emit:EventEmitter, log:EventLogger ) -> None :
+        """
+        When a gene promoter is altered, we replace the associated part in the sequence.
+        TODO: No knock-outs are being made on this operation.
+        """
+        found_gene = first( self.locgenes, lambda lg : lg == event.gene )
+        if found_gene is not None :
+            self.alter_sequence( found_gene.start_loc, found_gene.prom_len, event.new_promoter )
+            log( "GenomeLibrary: Changed promoter of gene={} in sequence.".format(event.gene.name) )
+
+
+
+    def get_genes_by_name ( self, name:str ) -> List[Gene] :
+        found_genes = [ gene for gene in self.locgenes if name == gene.name ]
+        return found_genes
 
 
 
@@ -132,6 +169,11 @@ class GenomeLibrary (Module) :
 
 
 
+    def alter_sequence ( self, old_loc:int, old_len:int, new_seq:Seq ) :
+        self.sequence = self.sequence[0:old_loc] + new_seq + self.sequence[old_loc+old_len:None]
+
+
+
     def calc_primer_matches ( self, primer:Seq ) -> List[PrimerMatch] :
         """
         Return the insertion sites a primer can have, alongside with success rate.
@@ -150,7 +192,7 @@ class GenomeLibrary (Module) :
 
 
 
-def make_background_seq ( rnd:Generator, size:int, gc_content:float ) -> Seq :
+def make_background_seq ( size:int, gc_content:float, rnd:Generator ) -> Seq :
     gc = gc_content
     at = 1 - gc_content
     seq_array = rnd.pick_choices( choices=["A","C","G","T"], amount=size, weights=[at/2,gc/2,gc/2,at/2] ) # 'ATCG' is ArrayLike

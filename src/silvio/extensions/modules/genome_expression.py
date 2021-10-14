@@ -3,55 +3,82 @@ TODO: GenomeExpression needs to be reviewed.
 """
 
 from typing import Union
+from copy import copy
+
+from Bio.Seq import Seq
 
 from ...host import Host
 from ...module import Module
+from ...events import EventEmitter, EventLogger
+from ..all_events import InsertGeneEvent, AlterGenePromoterEvent, AlterGeneExpressionEvent
 from ..records.gene.gene import Gene
 from ..utils.misc import Help_PromoterStrength
 from .genome_library import GenomeLibrary
 from .genome_list import GenomeList
 
 
+CompatGenome = Union[GenomeLibrary,GenomeList]
+
 
 class GenomeExpression ( Module ) :
 
     # Dependent module Genome Library holding the genes to express.
-    genome: Union[GenomeLibrary,GenomeList]
+    genome: CompatGenome
 
     # Optimal primer length.
     opt_primer_len: int
 
     # Factor which influences the range of the promoter strength.
     # TODO: These characteristics maybe go elsewhere.
-    infl_prom_str : float
-    species_prom_str : float
+    infl_prom_str: float
+    species_prom_str: float
 
     # Path to parameter files. TODO: use Paths.
-    regressor_file:str
-    addparams_file:str
+    regressor_file: str
+    addparams_file: str
 
 
 
-    def __init__ (
-        self, host:Host, genome:Union[GenomeLibrary,GenomeList],
+    def make ( self,
         opt_primer_len:int,
         infl_prom_str:float,
         species_prom_str:float,
         regressor_file:str,
         addparams_file:str,
-    ) :
-        super().__init__(host)
-
-        self.genome = genome
-
+    ) -> None :
         self.opt_primer_len = opt_primer_len
         self.infl_prom_str = infl_prom_str
         self.species_prom_str = species_prom_str
         self.regressor_file = regressor_file
         self.addparams_file = addparams_file
 
-        # self.host.observe( InsertGeneEvent, self.listen_insert_gene )
-        # self.host.observe( RemoveGeneEvent, self.listen_remove_gene )
+
+    def copy ( self, ref:'GenomeExpression' ) -> None :
+        self.opt_primer_len = ref.opt_primer_len
+        self.infl_prom_str = ref.infl_prom_str
+        self.species_prom_str = ref.species_prom_str
+        self.regressor_file = ref.regressor_file
+        self.addparams_file = ref.addparams_file
+
+
+
+    def bind ( self, host:Host, genome:CompatGenome ) -> None :
+        self.genome = genome
+        host.observe( AlterGenePromoterEvent, self.listen_alter_gene_promoter )
+
+
+
+    def sync ( self, emit:EventEmitter, log:EventLogger ) -> None :
+        pass # Nothing to sync.
+
+
+
+    def listen_alter_gene_promoter ( self, event:AlterGenePromoterEvent, emit:EventEmitter, log:EventLogger ) -> None :
+        """ When a gene promoter is altered, we recalculate the expression and update it. """
+        expr = self.calc_fast_wrong_prom_expr(event.new_promoter)
+        log( "GenomeExpression: Changed gene={} to expression={}.".format(event.gene.name,expr) )
+        emit(AlterGeneExpressionEvent( event.gene, expr ))
+
 
 
 

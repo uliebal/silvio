@@ -1,6 +1,7 @@
 
-from typing import Tuple, List
+from typing import Tuple, List, Callable
 from collections import namedtuple
+from copy import copy
 
 import numpy as np
 import pandas as pd
@@ -8,6 +9,8 @@ import pandas as pd
 from ...host import Host
 from ...module import Module
 from ...outcome import Outcome
+from ...events import EventEmitter, EventLogger
+from ...random import Generator
 from ..records.gene.gene import Gene
 from ..utils.misc import Help_GrowthConstant, Growth_Maxrate
 from .genome_expression import GenomeExpression
@@ -15,6 +18,9 @@ from .genome_expression import GenomeExpression
 
 
 class GrowthBehaviour ( Module ) :
+
+    # Creator of random number generators. Host will bind this.
+    make_generator: Callable[[],Generator]
 
     # Dependent module Genome Expression holding the genes to express.
     genexpr: GenomeExpression
@@ -24,16 +30,26 @@ class GrowthBehaviour ( Module ) :
 
 
 
-    def __init__ (
-        self, host:Host, genexpr:GenomeExpression,
-        opt_growth_temp:int, max_biomass:int
-    ) :
-        super().__init__(host)
-
-        self.genexpr = genexpr
-
+    def make ( self, opt_growth_temp:int, max_biomass:int ) -> None :
         self.opt_growth_temp = opt_growth_temp
         self.max_biomass = max_biomass
+
+
+
+    def copy ( self, ref:'GrowthBehaviour' ) -> None :
+        self.opt_growth_temp = ref.opt_growth_temp
+        self.max_biomass = ref.max_biomass
+
+
+
+    def bind ( self, host:Host, genexpr:GenomeExpression ) -> None :
+        self.make_generator = host.make_generator # Pass bound method Host.make_generator
+        self.genexpr = genexpr
+
+
+
+    def sync ( self, emit:EventEmitter, log:EventLogger ) -> None :
+        pass # Nothing to sync.
 
 
 
@@ -63,7 +79,7 @@ class GrowthBehaviour ( Module ) :
                 List of tuples containing loading time information.
 
         """
-        rnd = self.host.make_generator()
+        rnd = self.make_generator()
 
         CultTemps = np.array(CultTemps)
         Exp_Duration = 48

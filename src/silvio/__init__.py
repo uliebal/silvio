@@ -15,20 +15,26 @@ from .utils import alldef, coalesce, first
 
 from .extensions.common import Base, PromoterSite, ReadMethod
 
-from .extensions.events import InsertGeneEvent, RemoveGeneEvent
+from .extensions.all_events import (
+    InsertGeneEvent, RemoveGeneEvent, AlterGenePromoterEvent, AlterGeneExpressionEvent
+)
 
 from .extensions.modules.genome_expression import GenomeExpression
 from .extensions.modules.genome_library import GenomeLibrary
 from .extensions.modules.genome_list import GenomeList
 from .extensions.modules.growth_behaviour import GrowthBehaviour
+from .extensions.modules.metabolic_flux import MetabolicFlux
 from .extensions.modules.phenotype_size import PhenotypeSize
 
 from .extensions.records.gene.gene import Gene
 from .extensions.records.gene.crafted_gene import CraftedGene
 
-from .extensions.tools.shotgun_sequencing.assembly import ContigAssembler, GreedyContigAssembler, RandomContigAssembler
-from .extensions.tools.shotgun_sequencing.datatype import Scaffold, LocalizedSequence, EstimatedSequence, get_consensus_from_overlap, estimate_from_overlap
-from .extensions.tools.shotgun_sequencing.evaluation import calc_total_score, calc_sequence_score, evaluate_sequence
-from .extensions.tools.shotgun_sequencing.sequencing import ShotgunSequencer
-from .extensions.tools.shotgun_sequencing.storage import write_scaffolds_to_file
-from .extensions.tools.shotgun_sequencing.visualization import print_scaffold_as_fastq, print_scaffold, print_assembly_evaluation, print_estimation_evaluation
+from .extensions.tools.shotgun_sequencing import (
+    ContigAssembler, GreedyContigAssembler, RandomContigAssembler, ShotgunSequencer
+)
+
+from .extensions.utils.shotgun_sequencing import (
+    get_consensus_from_overlap, estimate_from_overlap, calc_total_score, calc_sequence_score,
+    evaluate_sequence, write_scaffolds_to_file, print_scaffold_as_fastq, print_scaffold,
+    print_assembly_evaluation, print_estimation_evaluation
+)
