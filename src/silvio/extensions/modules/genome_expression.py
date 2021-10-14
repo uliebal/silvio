@@ -81,6 +81,23 @@ class GenomeExpression ( Module ) :
 
 
 
+    def calc_fast_wrong_prom_expr ( self, prom:Seq ) -> float :
+        """
+        This method executes a wrong calculation of the promoter expression. It serves to
+        demonstrate how editing a promoter can affect the expression value. That expression value
+        can then change the metabolic models.
+        TODO: Only for demonstration purpose of chained events.
+        """
+        # Use sum of deviations. Perfectly balanced counts will return an expression of 1.
+        [a,c,g,t] = [ prom.count(base) for base in ["A","C","G","T"] ]
+        avg = ( a + c + g + t ) / 4
+        if avg == 0 : # On zero average, assume the sequence is undefined and always return 1.
+            return 1.0
+        dev = abs(a-avg) + abs(c-avg) + abs(g-avg) + abs(t-avg)
+        expr = ( len(prom) * 2 - dev ) / ( len(prom) * 2 )
+        return expr
+
+
 
     def calc_prom_str ( self, gene:Gene, ref_prom:str ) -> float :
         final_prom_str = float('NaN') # 0
