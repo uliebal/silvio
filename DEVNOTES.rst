@@ -17,9 +17,12 @@ Try PyPi Upload in Test Server
 --------
 
 .. code-block:: bash
-        python3 -m pip install build
-        python3 -m build --sdist
-        # make sure only the most recent version is inside dist/
+        # Bump the source code to the next version.
+        make bump-patch
+        # Build the distribution files and latest docs
+        make docs
+        make dist
+        # Upload the package to the test PyPi server.
         python3 -m twine upload --repository testpypi dist/*
 
 Also check out these notes: https://cookiecutter-pypackage.readthedocs.io/en/latest/pypi_release_checklist.html

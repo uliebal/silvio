@@ -1,4 +1,4 @@
-.PHONY: clean clean-test clean-pyc clean-build docs help
+.PHONY: clean clean-test clean-pyc clean-build docs bump-patch help
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
@@ -87,3 +87,6 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
+
+bump-patch: ## Bump the version by a patch
+	bump2version --verbose patch
