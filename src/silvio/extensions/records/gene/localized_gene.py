@@ -1,11 +1,3 @@
-"""
-Gene that stores its sequence in a shared sequence.
-
-   StartLoc       + PromLen       + OrfLen
-      |----------------|--------------|
-
-TODO: Simple for now. Only has promoter and ORF which are adjacent to each other.
-"""
 
 from __future__ import annotations
 
@@ -16,6 +8,16 @@ from .gene import Gene
 
 
 class LocalizedGene (Gene) :
+    """
+    Gene that stores its sequence in a shared sequence.
+
+    .. code-block::
+
+        StartLoc       + PromLen       + OrfLen
+            |----------------|--------------|
+
+    TODO: Simple for now. Only has promoter and ORF which are adjacent to each other.
+    """
 
     _name: str
 

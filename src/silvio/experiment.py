@@ -20,6 +20,7 @@ class ExperimentException (Exception) :
 
 
 class Experiment (ABC) :
+    """ The basic experiment will hold the hosts and a random-generator. """
 
     hosts: Set[Host]
 
@@ -35,6 +36,7 @@ class Experiment (ABC) :
 
 
     def bind_host ( self, host:Host ) -> None :
+        """Keep the host accessible via the experiment."""
         self.hosts.add(host)
 
 

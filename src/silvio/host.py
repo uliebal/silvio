@@ -10,6 +10,7 @@ observable that can be used by each module to communicate with other modules.
 """
 
 from typing import List, Callable, NamedTuple, Optional, Type, TYPE_CHECKING
+from abc import ABC
 
 from .events import Event, EventEmitter, EventLogger
 from .random import Generator, pick_seed
@@ -35,18 +36,21 @@ class ListenerEntry ( NamedTuple ) :
 
 
 
-class Host :
+class Host (ABC) :
     """
     A host usually contains 3 types of content:
-      - core params : Parameters that are used by all hosts.
-      - modules : Zero or more modules inside the host.
-      - extra params : Zero or more extra params used by the host extension.
+
+    - core params : Parameters that are used by all hosts.
+    - modules : Zero or more modules inside the host.
+    - extra params : Zero or more extra params used by the host extension.
 
     Host creation happens can happen in 2 variations of steps:
+
       - make > sync
       - copy
 
     The steps are responsible for:
+
       - make : The initial params are set for a host created from scratch. The extending host
       - copy : The complete (copies have no sync step) params are set using another host as reference.
       - sync : The host call out each module to sync.
@@ -113,7 +117,9 @@ class Host :
         """
         Make a new host from scratch with the help of arguments. Set possible params and modules.
 
-        Extending Host should have the following structure on their method :
+        Extending Host should have the following structure on their method:
+
+        .. code-block python::
 
             def make ( self, param_1, ... ) -> None :
                 self.module_1 = ModuleTypeA()
@@ -130,7 +136,9 @@ class Host :
         The code inside this method should provide a good copy where shallow and deep copies are
         used appropriately.
 
-        Extending Hosts should have the following structure on their method :
+        Extending Hosts should have the following structure on their method:
+
+        .. code-block python::
 
             def copy ( self, ref ) -> None :
                 self.module_1 = ModuleTypeA()
@@ -146,7 +154,9 @@ class Host :
         Run the sync procedure on this host. It usually only calls the sync of each module using
         a helper method for that.
 
-        Extending Hosts should have the following structure on their method :
+        Extending Hosts should have the following structure on their method:
+
+        .. code-block python::
 
             def sync ( self ) -> None :
                 self.sync_modules([ self.module_1, self.module_2, ... ])

@@ -26,7 +26,6 @@ class Scaffold ( NamedTuple ) :
         |  R1 contig  |            gap            |  R2 contig  |
         [0123=========] - - - - - - - - - - - - - [=========3210]
          ---> order                                   order <---
-
     """
     expected_len : float # Just an expectation and not necessarily integer.
     r1_seqrecord : SeqRecord

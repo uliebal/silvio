@@ -17,15 +17,18 @@ from .events import EventEmitter, EventLogger
 class Module (ABC) :
     """
     A module usually contains 3 types of content:
+
       - host : The host this module belongs to.
       - deps* : Zero or more dependent modules this module is using.
       - params* : Zero or more params to build this module.
 
     Module creation happens can happen in 2 variations of steps:
+
       - make > bind > sync
       - copy > bind
 
     The steps are responsible for:
+
       - make : The initial params are set for a module created from scratch.
       - copy : The complete (copies have no sync step) params are set using another module as reference.
       - bind : The host and deps are set.
@@ -52,7 +55,9 @@ class Module (ABC) :
         """
         Make a new module from scratch with the help of arguments. This will only set the params.
 
-        Extending Modules should have the following structure on their method :
+        Extending Modules should have the following structure on their method:
+
+        .. code-block:: python
 
             def make ( self, param_1, param_2, ... ) -> None :
                 self.param_1 = param_1
@@ -69,7 +74,9 @@ class Module (ABC) :
         The code inside this method should provide a good copy where shallow and deep copies are
         used appropriately.
 
-        Extending Modules should have the following structure on their method :
+        Extending Modules should have the following structure on their method:
+
+        .. code-block:: python
 
             def copy ( self, ref ) -> None :
                 self.simple_param_1 = ref.simple_param_1
@@ -84,7 +91,9 @@ class Module (ABC) :
         Bind this module to its host and deps (dependent modules). Here, the event listeners should
         also be set.
 
-        Extending Modules should have the following structure on their method :
+        Extending Modules should have the following structure on their method:
+
+        .. code-block:: python
 
             def bind ( self, host, req_mod_1, req_mod_2, ... ) -> None :
                 self.host = host
@@ -102,7 +111,9 @@ class Module (ABC) :
         Run the sync procedure on this module. This usually means dispatching some events after the
         module is made and all other modules have been bound and are listening to event emitters.
 
-        Extending Modules should have the following structure on their method :
+        Extending Modules should have the following structure on their method:
+
+        .. code-block:: python
 
             def sync ( self, emit, log ) -> None :
                 log("ModuleX: start sync")

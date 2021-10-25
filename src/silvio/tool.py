@@ -20,6 +20,7 @@ class ToolException (Exception) :
 
 
 class Tool :
+    """ The Tool base class includes some basic blocks to enable a stable randomization. """
 
     name: str
 

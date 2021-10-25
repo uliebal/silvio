@@ -28,13 +28,14 @@ class MetabolicFlux (Module) :
     MetabolicFlux can handle cobrapy models and interfaces them with module events.
 
     This module can start with an non-existing model, which can then be integrated as an event.
+
     TODO: Its probably not elegant to allow non-existing models, but this makes it easier to add
-      all genes in that model later on (as events). If we would be really pedantic and needed a
-      strictly-existinging model we could implement an initialization step where a module calls
-      multiple events on the host in order to "initialize" the module properly. To achieve that,
-      modules themselves need to be able to generate events (right now only a Host can send events
-      down to modules, events never go up the chain) and prevent infinite event loops. But maybe
-      there are better alternatives altogether.
+    all genes in that model later on (as events). If we would be really pedantic and needed a
+    strictly-existinging model we could implement an initialization step where a module calls
+    multiple events on the host in order to "initialize" the module properly. To achieve that,
+    modules themselves need to be able to generate events (right now only a Host can send events
+    down to modules, events never go up the chain) and prevent infinite event loops. But maybe
+    there are better alternatives altogether.
     """
 
     model: CobraModel

@@ -1,6 +1,6 @@
 
 from typing import List, Optional, NamedTuple, Literal
-from recordclass import RecordClass
+from dataclasses import dataclass
 from math import floor
 
 from Bio.Seq import Seq
@@ -18,7 +18,8 @@ PHRED_MAX = 40
 
 
 
-class RatedSequence (RecordClass) :
+@dataclass
+class RatedSequence :
     """
     Internal structure to store sequences and their quality score.
     """

@@ -13,6 +13,6 @@ class Event (ABC) :
     pass
 
 
-EventEmitter = Callable[[Event],None]
+EventEmitter = Callable[[Event],None]  #:
 
-EventLogger = Callable[[str],None]
+EventLogger = Callable[[str],None]  #:
