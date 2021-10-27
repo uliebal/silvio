@@ -32,4 +32,4 @@ Features
 Credits
 -------
 
-Extensive credits can be found in the developer notes.
+Extensive credits can be found in the author notes.
