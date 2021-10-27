@@ -184,6 +184,14 @@ class Host (ABC) :
 
 
 
+    def log ( self, text:str, depth:Optional[int] = 1 ) -> None :
+        """
+        Log a message in the event log.
+        """
+        self.event_log.append( ("- " * depth) + text )
+
+
+
     def emit ( self, event: Event, chain: List[ListenerEntry] = [] ) -> None :
         """
         Trigger all listeners for a given Event.
@@ -201,7 +209,7 @@ class Host (ABC) :
                 # Run the listener with the emitted event and append to chain to keep track.
                 new_chain = chain + [le]
                 emit = lambda event : self.emit( event, new_chain )
-                log = lambda text : self.event_log.append( "- " * len(new_chain) + text )
+                log = lambda text : self.log( text, len(new_chain)+1 )
                 le.run( event, emit, log )
 
 
@@ -219,7 +227,7 @@ class Host (ABC) :
         This cannot be included inside the module __init__ because all listeners have to be set.
         """
         emit = lambda event : self.emit( event, [] )
-        log = lambda text : self.event_log.append( text )
+        log = lambda text : self.log( text )
         for mod in modules :
             mod.sync( emit, log )
 
@@ -233,5 +241,7 @@ class Host (ABC) :
 
 
     def print_event_log ( self ) -> None :
+        print("Event Log for {}:".format(self.name))
+        print("=" * (len(self.name) + 15))
         for ev in self.event_log :
             print(ev)
