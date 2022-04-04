@@ -29,7 +29,7 @@ setup(
     url='https://git.rwth-aachen.de/ulf.liebal/silvio.git',
     author="Ulf Liebal",
     author_email='ulf.liebal@rwth-aachen.de',
-    python_requires='>=3.9',
+    python_requires='>=3.9', 
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
