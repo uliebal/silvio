@@ -5,7 +5,7 @@
 # By doing this, all logic is inside this file and other __init__ files in the sub-folders can
 # stay empty.
 
-__version__ = '0.1.2'
+__version__ = '0.1.5'
 
 from .config import DATADIR
 from .experiment import Experiment, ExperimentException
@@ -40,3 +40,5 @@ from .extensions.utils.shotgun_sequencing import (
     evaluate_sequence, write_scaffolds_to_file, print_scaffold_as_fastq, print_scaffold,
     print_assembly_evaluation, print_estimation_evaluation
 )
+
+from .catalog.RecExpSim import RecExperiment
