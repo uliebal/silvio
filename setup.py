@@ -12,8 +12,8 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'biopython ~= 1.79',
-    'cobra ~= 0.22',
-    'joblib ~= 1.0',
+#     'cobra ~= 0.22',
+    'joblib >= 1.0',
     'matplotlib ~= 3.4',
     'numpy ~= 1.18',
     'pandas ~= 1.2',
@@ -25,7 +25,7 @@ test_requirements = ['pytest>=3', ]
 
 setup(
     name='silvio',
-    version='0.1.6',
+    version='0.1.7',
     url='https://git.rwth-aachen.de/ulf.liebal/silvio.git',
     author="Ulf Liebal",
     author_email='ulf.liebal@rwth-aachen.de',

@@ -134,13 +134,13 @@ class RecExperiment (Experiment) :
 
 
 
-    def simulate_growth ( self, host_name:str, temps:List[int] ) -> GrowthOutcome :
+    def simulate_growth ( self, host_name:str, temps:List[int], wait:float = 0.001 ) -> GrowthOutcome :
         """ Simulate a growth under multiple temperatures and return expected biomasses over time. """
         self.spend_budget_or_abort(100)
         host = self.find_host_or_abort(host_name)
         ( df, pauses ) = host.growth.Make_TempGrowthExp(CultTemps=temps, exp_suc_rate=self.suc_rate)
 
-        wait = 0.001 # has to be adjusted, waiting time for loading bar
+        # wait = 0.001 # has to be adjusted, waiting time for loading bar
         for pause in pauses :
             loading_time = wait * pause.loading_len
             Help_Progressbar(45, loading_time, pause.exp)

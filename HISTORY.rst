@@ -21,3 +21,9 @@ History
 ------------------
 
 * in RecExperiment: round print failure rate to two decimals
+* in RecExperiment.simulate_growth: separate argument progress bar waiting
+
+0.1.7 (2022-04-07)
+------------------
+
+* remove requirement cobra
