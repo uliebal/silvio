@@ -16,5 +16,3 @@ pages:
         master
 after_script:
     - mv docs/build/html/ ./public/
-rules:
-        - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
