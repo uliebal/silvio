@@ -1,0 +1,20 @@
+stages:
+  - deploy
+
+pages:  
+    stage: deploy
+    image: python:3.9-slim
+    before_script: 
+        - apt-get update && apt-get install make --no-install-recommends -y
+        - python -m pip install sphinx furo
+    script:
+        - cd docs && make html
+    artifacts:
+        paths:
+            - public
+    only:
+        master
+after_script:
+    - mv docs/build/html/ ./public/
+rules:
+        - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
