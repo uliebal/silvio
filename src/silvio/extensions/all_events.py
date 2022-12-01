@@ -2,7 +2,7 @@
 from typing import Optional
 from dataclasses import dataclass
 
-from cobra.core import Model as CobraModel
+# from cobra.core import Model as CobraModel
 from Bio.Seq import Seq
 
 from ..events import Event

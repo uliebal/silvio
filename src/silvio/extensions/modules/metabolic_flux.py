@@ -1,7 +1,7 @@
 """
 GenomeLibrary is a more complex version of GenomeList:
- - support for genome sequences
- - genes are located inside the sequence
+  - support for genome sequences
+  - genes are located inside the sequence
 """
 
 
@@ -13,7 +13,7 @@ from copy import copy
 from numpy.random import Generator
 from cobra.core import Model as CobraModel
 from cobra.core.solution import Solution as CobraSolution
-from cobra.manipulation import delete_model_genes, undelete_model_genes
+from cobra.manipulation import delete_model_genes
 
 from ...host import Host
 from ...module import Module, ModuleException
