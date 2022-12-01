@@ -1,5 +1,7 @@
 numpy
 pandas
+cobra
+escher
 biopython~=1.79
 matplotlib
 pip==19.2.3
