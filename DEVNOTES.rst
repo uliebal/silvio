@@ -9,7 +9,7 @@ Setup silvio for development
 ----------------------------
 
 * Clone the repository and enter it.
-* Install developer dependencies with :code:`pip install -r requirements_dev.txt`
+* Install developer dependencies with :code:`pip install -r requirements.txt`
 * Install silvio as an editable module with :code:`pip install -e .`
 
 
