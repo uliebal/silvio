@@ -15,10 +15,11 @@ requirements = [
     'cobra >= 0.22',
     'joblib >= 1.0',
     'matplotlib ~= 3.4',
-    'numpy ~= 1.18',
+    'numpy ~= 1.23',
     'pandas ~= 1.2',
     'pickleshare ~= 0.7',
     'scipy ~= 1.6',
+    'jinja2<3.1.0',
 ]
 
 test_requirements = ['pytest>=3', ]
