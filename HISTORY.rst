@@ -38,3 +38,8 @@ History
 
 * add cobra code dependencies
 * remove undelete_gene
+
+0.2 (2023-03-29)
+------------------
+
+* add GroExpSim, a class to simulate growth experiments

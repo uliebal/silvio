@@ -26,7 +26,7 @@ test_requirements = ['pytest>=3', ]
 
 setup(
     name='silvio',
-    version='0.1.9',
+    version='0.2',
     url='https://git.rwth-aachen.de/ulf.liebal/silvio.git',
     author="Ulf Liebal",
     author_email='ulf.liebal@rwth-aachen.de',
