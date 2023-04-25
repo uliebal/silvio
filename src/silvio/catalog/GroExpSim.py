@@ -19,7 +19,7 @@ from silvio import (
 )
 # additional non-renamed utilities
 from silvio.extensions.utils.visual import Help_Progressbar
-
+from silvio.extensions.utils.laboratory import ErrorRate
 
 
 class GrowthExperiment (Experiment) :
@@ -27,7 +27,7 @@ class GrowthExperiment (Experiment) :
     Growth experiments on Monod equation with temperature, substrate and sampling times.
     """
 
-    # budget: int
+    budget: int
 
     suc_rate: float
 
@@ -36,10 +36,14 @@ class GrowthExperiment (Experiment) :
 
 
 
-    def __init__ ( self, seed:Optional[int] = None ) :
+    def __init__ ( self, seed:Optional[int] = None, equipment_investment:int = 0, max_budget:int = 10000  ) :
+
+        if equipment_investment > max_budget :
+            raise ExperimentException("Investment cost is higher than maximal budget.")
 
         super().__init__(seed=seed)
-        self.suc_rate = 0.12 # 12% error rate
+        self.budget = max_budget - equipment_investment
+        self.suc_rate = ErrorRate(equipment_investment, max_budget)
         self.host_counter = 0
 
 
@@ -83,13 +87,24 @@ class GrowthExperiment (Experiment) :
             raise ExperimentException("Experiment has not found the host '{}'".format(host_name))
         return host
 
+    def spend_budget_or_abort ( self, amount:int ) -> None :
+        """
+        Each operation may use up a certain amount of the budget.
+        When the budget is not sufficient those operations will all fail.
+        By using error handling via raised exceptions we don't need to check each method for a
+        success flag on their return value.
+        Throws: ExperimentException
+        """
+        if amount > self.budget :
+            raise ExperimentException("Experiment has surpassed its budget. No more operations are allowed.")
+        self.budget -= amount
 
     def simulate_monod( self, temps:List[float], samplevec:List[float], substrates:List[float], test=False ) -> GrowthOutcome :
         """ Simulate a growth under multiple temperatures and return expected biomasses over time. 
         Args:
             host_name: name of the host
             temps: list of temperatures
-            samplevec: list of sampling times
+            samplevec: array of (total sampling time, sample number) with shape (len(temps),2)
             substrates: list of substrate concentrations
         
         Returns:
@@ -105,10 +120,18 @@ class GrowthExperiment (Experiment) :
             DataHandle = GrowthOutcome(value=Result)
             DataHandle.make_plot()
         elif test == 'Monod':
+            SampleNumber = samplevec[1] if samplevec[1] < len(range(samplevec[1])) else len(range(samplevec[1]))
+            # calculating the experiment price based on the number of samples
+            BaseCost = 100
+            TotalCost = round(BaseCost * calculate_ExpPriceFactor(SampleNumber))
+            self.spend_budget_or_abort( TotalCost )
             Variables = {'S': 0.5, 'P':0, 'X':.1, 'T': 25}
             Params = {'Ks': 0.5, 'Yx': 0.5, 'k1': 0.1, 'umax': 0.5}
-            Duration = 10
-            Result = pd.DataFrame.from_dict(makeMonod(Variables, Params, Duration))
+            allDat = pd.DataFrame.from_dict(makeMonod(Variables, Params, samplevec[0]))
+            # selecting data according to the sampling rate, i.e. using every nth row
+            ChooseRowAprx = np.round(np.linspace(0, samplevec[0]-1, SampleNumber))
+            print(ChooseRowAprx)
+            Result = allDat.iloc[ChooseRowAprx, :]
             DataHandle = GrowthOutcome(value=Result[['t', 'X', 'S']])
             DataHandle.make_plot()
             # host = self.find_host_or_abort(host_name)
@@ -124,6 +147,7 @@ class GrowthExperiment (Experiment) :
 
     def print_status ( self ) -> None :
         print("Experiment:")
+        print("  budget = {}".format( self.budget ))
         print("  failure rate = {}".format( round(self.suc_rate, 2) ))
         print("  hosts = [ {} ]".format( " , ".join([h.name for h in self.hosts]) ))
         # Could display the status of each host if wanted.
@@ -251,3 +275,33 @@ def makeMonod(Variables, Params, Duration):
             'rP': rP
             }
     return monod_result
+
+def calculate_ExpPriceFactor(SampleAmount, PlotExample=False):
+    '''logit function to generate the price-factor for amount of sampling
+        https://nathanbrixius.wordpress.com/2016/06/04/functions-i-have-known-logit-and-sigmoid/
+        increasing sampling amount will increase the price until a certain point
+        after that the price will remain constant until a certain point
+        after that the price will increase again
+        the input needs to be between 0 and 1, otherwise the function will return an error
+        therefore we need to normalize the input with a saturation function
+        the saturation function is a tanh function
+        the saturation function will be used to normalize the input
+
+        Args:
+            SampleAmount (float): amount of sampling
+            PlotExample (bool): if True, the function will plot an example of the function
+        Returns:
+            PriceFactor (float): price factor for the amount of sampling
+        '''
+    myTanh = lambda x: np.tanh(x/20) #+ np.tanh(1/20)
+    myLogit = lambda x: (np.log(x/(1-x))**3 - np.log(myTanh(1)/(1-myTanh(1)))**3 + 1)/26
+    PriceFactor = myLogit(myTanh(SampleAmount))
+    if PlotExample:
+        x = np.linspace(0,1,50)
+        y = myLogit(x)
+        plt.plot(x,y)
+        plt.xlabel('Sampling amount')
+        plt.ylabel('Price factor')
+        plt.show()
+
+    return PriceFactor
