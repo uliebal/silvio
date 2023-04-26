@@ -32,7 +32,7 @@ class GrowthBehaviour ( Module ) :
     # Monod Substrate affinity
     Ks: float
     # Monod Yield coefficient
-    Yx: float
+    Yxs: float
     # Monod Maximum growth rate
     umax: float
 
@@ -42,11 +42,11 @@ class GrowthBehaviour ( Module ) :
         self.opt_growth_temp = opt_growth_temp
         self.max_biomass = max_biomass
 
-    def make2 ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yx:float, k1:float, umax:float ) -> None :
+    def make2 ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yxs:float, k1:float, umax:float ) -> None :
         self.opt_growth_temp = opt_growth_temp
         self.max_biomass = max_biomass
         self.Ks = Ks
-        self.Yx = Yx
+        self.Yxs = Yxs
         self.k1 = k1
         self.umax = umax
 

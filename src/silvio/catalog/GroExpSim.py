@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import scipy.integrate as spi
 
 from silvio import (
     DATADIR, # config
@@ -68,7 +69,7 @@ class GrowthExperiment (Experiment) :
             opt_growth_temp= gen.pick_integer(25, 40), # unit: degree celsius, source: https://application.wiley-vch.de/books/sample/3527335153_c01.pdf
             max_biomass= gen.pick_integer(30, 100), # unit: in gDCW/l, source (german): https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=2ahUKEwjzt_aJ9pzpAhWGiqQKHb1jC6MQFjABegQIAhAB&url=https%3A%2F%2Fwww.repo.uni-hannover.de%2Fbitstream%2Fhandle%2F123456789%2F3512%2FDissertation.pdf%3Fsequence%3D1&usg=AOvVaw2XfGH11P9gK2F2B63mY4IM
             Ks = round(gen.pick_uniform(7, 10), 3),
-            Yx = round(gen.pick_uniform(.4, .6), 2),
+            Yxs = round(gen.pick_uniform(.4, .6), 2),
             k1 = round(gen.pick_uniform(.05, .2), 3),
             umax = round(gen.pick_uniform(.5, 1.1), 3),
         )
@@ -99,7 +100,7 @@ class GrowthExperiment (Experiment) :
             raise ExperimentException("Experiment has surpassed its budget. No more operations are allowed.")
         self.budget -= amount
 
-    def simulate_monod( self, temps:List[float], samplevec:List[float], substrates:List[float], test=False ) -> GrowthOutcome :
+    def simulate_monod( self, host_name:str, temps:List[float], samplevec:List[float], substrates:List[float], test=False ) -> DataOutcome :
         """ Simulate a growth under multiple temperatures and return expected biomasses over time. 
         Args:
             host_name: name of the host
@@ -110,6 +111,11 @@ class GrowthExperiment (Experiment) :
         Returns:
             GrowthOutcome: dataframe with the expected biomass over time
         """
+        host = self.find_host_or_abort(host_name)
+        # Equipment failure can prematurely end the simulation.
+        if self.rnd_gen.pick_uniform(0,1) < self.suc_rate :
+            return DataOutcome( None, 'Experiment failed, bad equipment.' )
+
         if test == 'Test':
             import random
             samples = random.randint(8, 12)
@@ -117,31 +123,40 @@ class GrowthExperiment (Experiment) :
             mu = [.5,.2]
             biomass = [.01*np.exp(mu*time) for mu in mu]
             Result = pd.DataFrame(np.vstack((time,biomass)).T)
-            DataHandle = GrowthOutcome(value=Result)
-            DataHandle.make_plot()
+            DataReturn = DataOutcome(Result)
+            DataPlot = GrowthOutcome(Result)
+            DataPlot.make_plot()
         elif test == 'Monod':
+            Params={'mumax': host.growth.umax, 'Ks': host.growth.Ks, 'Yxs': host.growth.Yxs, 'max_biomass': host.growth.max_biomass}
+            Initials={'X0': 0.01, 'S0': float(substrates[0])}
+            t=np.linspace(0, samplevec[0], samplevec[1])
+            BaseCost = 100
+            TotalCost = round(BaseCost * calculate_ExpPriceFactor(samplevec[1]))
+            self.spend_budget_or_abort( TotalCost )
+            MonodSol = add_noise(solve_MonodEqn(Params, Initials, t), self.suc_rate)
+            Result = round(pd.DataFrame(np.vstack((t, MonodSol.T)).T, columns=['t', 'X', 'S']),3)
+            DataReturn = DataOutcome(Result)
+            DataPlot = GrowthOutcome(Result)
+            DataPlot.make_plot()
+        elif test == 'Monod2':
             SampleNumber = samplevec[1] if samplevec[1] < len(range(samplevec[1])) else len(range(samplevec[1]))
             # calculating the experiment price based on the number of samples
             BaseCost = 100
             TotalCost = round(BaseCost * calculate_ExpPriceFactor(SampleNumber))
             self.spend_budget_or_abort( TotalCost )
             Variables = {'S': 0.5, 'P':0, 'X':.1, 'T': 25}
-            Params = {'Ks': 0.5, 'Yx': 0.5, 'k1': 0.1, 'umax': 0.5}
+            Params = {'Ks': 0.5, 'Yxs': 0.5, 'k1': 0.1, 'umax': 0.5}
             allDat = pd.DataFrame.from_dict(makeMonod(Variables, Params, samplevec[0]))
             # selecting data according to the sampling rate, i.e. using every nth row
             ChooseRowAprx = np.round(np.linspace(0, samplevec[0]-1, SampleNumber))
-            print(ChooseRowAprx)
             Result = allDat.iloc[ChooseRowAprx, :]
-            DataHandle = GrowthOutcome(value=Result[['t', 'X', 'S']])
-            DataHandle.make_plot()
-            # host = self.find_host_or_abort(host_name)
-            # growth = host.growth
-            # growth.make_monod(temps, samplevec, substrates)
-            # growth.simulate()
-            # Result = GrowthOutcome(value=growth.biomass)
-            # Result.make_plot()
+            DataReturn = DataOutcome(Result[['t', 'X', 'S']])
+            DataPlot = GrowthOutcome(Result[['t', 'X', 'S']])
+            DataPlot.make_plot()
 
-        return Result
+        # save DataReturn to csv
+        DataReturn.export_data('ExperimentGrowthSubstrateRate.csv')
+        return DataReturn
 
 
 
@@ -159,9 +174,9 @@ class GroHost (Host) :
     growth: GrowthBehaviour
 
 
-    def make ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yx:float, k1:float, umax:float) -> None :
+    def make ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yxs:float, k1:float, umax:float) -> None :
 
-        if not alldef( opt_growth_temp, max_biomass, Ks, Yx, k1, umax ) :
+        if not alldef( opt_growth_temp, max_biomass, Ks, Yxs, k1, umax ) :
             raise HostException("Host not initialized. Reason: incomplete arguments.")
 
         # Setup GrowthBehaviour module
@@ -170,7 +185,7 @@ class GroHost (Host) :
         self.max_biomass = max_biomass
 
         self.growth.make2(
-            opt_growth_temp=opt_growth_temp, max_biomass=max_biomass, Ks=Ks, Yx=Yx, k1=k1, umax=umax
+            opt_growth_temp=opt_growth_temp, max_biomass=max_biomass, Ks=Ks, Yxs=Yxs, k1=k1, umax=umax
         )
         self.growth.bind2( host=self )
 
@@ -223,11 +238,11 @@ class GrowthOutcome ( DataWithPlotOutcome ) :
 def makeMonod(Variables, Params, Duration):
         # Get start parameters
     # params = self.get_start_params(hidden_params)
-    umax, Ks, Yx, k1, u = Params['umax'], Params['Ks'], Params['Yx'], Params['k1'], [0]
+    umax, Ks, Yxs, k1, u = Params['umax'], Params['Ks'], Params['Yxs'], Params['k1'], [0]
     S, P, X = [Variables['S']], [Variables['P']], [Variables['X']]
     # Intial rates
     rX = [u[0] * X[0]]
-    rS = [-(rX[0] / (Yx / S[0]))]
+    rS = [-(rX[0] / (Yxs / S[0]))]
     rP = [(k1 * u[0]) * X[0]]
     # return {'rX': rX, 'rS': rS, 'rP': rP}
     t = [0]
@@ -245,7 +260,7 @@ def makeMonod(Variables, Params, Duration):
             rX.append(0)
         X.append(round(X[j - 1] + rX[j], 3))                      # New [Biomass]
 
-        new_rS = round(-(rX[j - 1] / Yx), 3)                      # Derivative of substrate
+        new_rS = round(-(rX[j - 1] / Yxs), 3)                      # Derivative of substrate
         if new_rS <= 0:
             rS.append(new_rS)
         else:
@@ -297,11 +312,74 @@ def calculate_ExpPriceFactor(SampleAmount, PlotExample=False):
     myLogit = lambda x: (np.log(x/(1-x))**3 - np.log(myTanh(1)/(1-myTanh(1)))**3 + 1)/26
     PriceFactor = myLogit(myTanh(SampleAmount))
     if PlotExample:
-        x = np.linspace(0,1,50)
-        y = myLogit(x)
-        plt.plot(x,y)
+        x = np.linspace(1,SampleAmount,SampleAmount)
+        y = myLogit(myTanh(x))
+        plt.plot(x,y, label='logit function', marker='o', linestyle='None')
         plt.xlabel('Sampling amount')
         plt.ylabel('Price factor')
         plt.show()
 
     return PriceFactor
+
+def add_noise(data, noise):
+    """
+    Add noise to data.
+    """
+    # Each column get a different noise based on the average value of the column
+    noise = noise * np.mean(data, axis=0)  
+    # ensure that there are no negative values
+    return np.abs(data + np.random.normal(0, noise, data.shape))
+
+def MonodEqnODE(MonodVars, t, mumax, Ks, Yxs, max_biomass):
+    """
+    Monod bioprocess model with ODEs. Based on the model described in:
+    Hemmerich et al., doi:10.1002/elsc.202000088, Fig. 6
+
+    Args:
+        MonodVars (list): list of variables [X, S]
+        t (float): time
+        mumax (float): maximum specific growth rate
+        Ks (float): half-saturation constant
+        Yxs (float): yield coefficient
+
+    Returns:
+        list: list of derivatives [dX_dt, dS_dt]
+    """
+    # Unpack y and z
+    X, S = MonodVars
+
+    mu = mumax * S / (Ks + S)
+    # Compute biomass growth rate with  a Verhulst growth function
+    dX_dt = mu * X * (1 - X / max_biomass)
+
+    # Compute substrate consumption rate
+    dS_dt = -mu * X  * (1 - X / max_biomass) / Yxs
+
+    # Return the result as a NumPy array
+    return np.array([dX_dt, dS_dt])
+
+def solve_MonodEqn(Params, Initials, t):
+    """
+    Solve the Monod bioprocess model with ODEs.
+
+    Args:
+        Params (dict): dictionary of parameters
+        Initials (dict): dictionary of initial conditions
+        t (list): list of time points
+
+    Returns:
+        list: list of solutions [X, S]
+    """
+    # Unpack parameters
+    mumax, Ks, Yxs, max_biomass = Params['mumax'], Params['Ks'], Params['Yxs'], Params['max_biomass']
+    # Initial condition
+    MonodVars_0 = [Initials['X0'], Initials['S0']]
+
+    # Parameters
+    args = (mumax, Ks, Yxs, max_biomass)
+
+    # Integrate ODES
+    MonodSol = spi.odeint(MonodEqnODE, MonodVars_0, t, args=args)
+
+    # Return the result as a NumPy array
+    return MonodSol
