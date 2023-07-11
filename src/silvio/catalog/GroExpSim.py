@@ -21,6 +21,7 @@ from silvio import (
 # additional non-renamed utilities
 from silvio.extensions.utils.visual import Help_Progressbar
 from silvio.extensions.utils.laboratory import ErrorRate
+from silvio.extensions.utils.misc import Help_GrowthConstant
 
 
 class GrowthExperiment (Experiment) :
@@ -99,6 +100,24 @@ class GrowthExperiment (Experiment) :
         if amount > self.budget :
             raise ExperimentException("Experiment has surpassed its budget. No more operations are allowed.")
         self.budget -= amount
+
+    def measure_SubstrateGrowth( self, host_name:str, TestTemp:float, samplevec:List[float], substrates:List[float], test=False ) -> DataOutcome :
+        """ Simulate a growth under multiple temperatures and return expected biomasses over time. 
+        Args:
+            host_name: name of the host
+            temps: Temperature for the experiment
+            samplevec: array of (total sampling time, sample number) with shape (len(temps),2)
+            substrates: list of substrate concentrations
+        
+        Returns:
+            GrowthOutcome: dataframe with the expected biomass over time
+        """
+        host = self.find_host_or_abort(host_name)
+        OptTemp = host.growth.opt_growth_temp
+        TestUmax = Help_GrowthConstant(OptTemp, TestTemp)
+        print(f'Optimal Temperature: {OptTemp}°C with rate {host.growth.umax} 1/h')
+        print(f'Tested Temperature: {TestTemp}°C with rate {host.growth.umax} 1/h')
+        return Help_GrowthConstant(OptTemp, TestTemp)
 
     def simulate_monod( self, host_name:str, temps:List[float], samplevec:List[float], substrates:List[float], test=False ) -> DataOutcome :
         """ Simulate a growth under multiple temperatures and return expected biomasses over time. 
