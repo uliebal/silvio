@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Optional, List, Tuple, Literal
 from pathlib import Path
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -73,6 +74,7 @@ class GrowthExperiment (Experiment) :
             Yxs = round(gen.pick_uniform(.4, .6), 2),
             k1 = round(gen.pick_uniform(.05, .2), 3),
             umax = round(gen.pick_uniform(.5, 1.1), 3),
+            OD2X = round(gen.pick_uniform(0.3, 0.5), 3)
         )
         host.sync()
         return host
@@ -101,7 +103,55 @@ class GrowthExperiment (Experiment) :
             raise ExperimentException("Experiment has surpassed its budget. No more operations are allowed.")
         self.budget -= amount
 
-    def measure_SubstrateGrowth( self, host_name:str, TestTemp:float, samplevec:List[float], substrates:List[float], test=False ) -> DataOutcome :
+    def measure_DryWeight( self, host_name:str, Temperature:float, FinalTime:float, SubstrateConc:float, Replicates: int, FileName: str ) -> DataOutcome :
+        '''Experiment to determine the correlation between OD and dry weight. The factor depends on the temperature. Get growth phase when substrate is at least half and not fully consumed.
+        Args:
+            host_name: name of the host
+            Temperature: float of temperature for the experiment
+            FinalTime: float of total experiment time in h
+            SubstrateConc: float of substrate concentration
+            Replicates: int of number of replicates
+            FileName: name of the file to which the data is saved
+
+        Returns:
+            DataOutcome: dataframe with the expected biomass over time
+            CSV file: csv file with the data
+        '''
+
+        host = self.find_host_or_abort(host_name)
+        # Equipment failure can prematurely end the simulation.
+        if self.rnd_gen.pick_uniform(0,1) < self.suc_rate :
+            return DataOutcome( None, 'Experiment failed, bad equipment.' )
+
+        # calculating the experiment price based on the number of samples
+        BaseCost = 25
+        TotalCost = round(BaseCost * Replicates)
+        self.spend_budget_or_abort( TotalCost )
+
+        OptTemp = host.growth.opt_growth_temp
+        Initials={'X0': 0.01, 'S0': SubstrateConc}
+        Params={'mumax': host.growth.umax, 'Ks': host.growth.Ks, 'Yxs': host.growth.Yxs, 'max_biomass': host.growth.max_biomass}
+        Params['mumax'] = Params['mumax'] * Help_GrowthConstant(host.growth.opt_growth_temp, Temperature, 4)
+        ResAll = pd.DataFrame(columns=['t', 'X', 'S', 'OD'])
+        for Rep in range(Replicates):
+            # solving the Monod equation and adding noise
+            MonodSol = add_noise(solve_MonodEqn(Params, Initials, np.linspace(0,FinalTime,50)), self.suc_rate)
+            # Last row of MonodSol combined with FinalTime
+            Last = np.hstack((FinalTime, MonodSol[-1,:]))
+            Result = round(pd.DataFrame(Last.reshape(1,-1), columns=['t', 'X', 'S']),3)
+            # adding OD with deviation from Temperature, the variance is set larger (5) so the effect is not too drastic
+            OD2X = host.growth.OD2X * Help_GrowthConstant(host.growth.opt_growth_temp, Temperature, 5)
+            Result['OD'] = round(X2OD(Result['X'], OD2X),3)
+            # add Result dataframe at the bottom of a new dataframe
+            ResAll = pd.concat([ResAll, Result], ignore_index=True)
+        DataReturn = DataOutcome(ResAll)
+        # save DataReturn to csv
+        # relative path to the data folder
+        FilePath = os.path.join('..', 'Data', FileName)
+        DataReturn.export_data(FilePath)
+        return DataReturn
+
+    def measure_TemperatureGrowth( self, host_name:str, Temperatures:List[float], FileName:str, wait:float = 0.001 ) -> DataOutcome :
         """ Simulate a growth under multiple temperatures and return expected biomasses over time. 
         Args:
             host_name: name of the host
@@ -113,19 +163,38 @@ class GrowthExperiment (Experiment) :
             GrowthOutcome: dataframe with the expected biomass over time
         """
         host = self.find_host_or_abort(host_name)
-        OptTemp = host.growth.opt_growth_temp
-        TestUmax = Help_GrowthConstant(OptTemp, TestTemp)
-        print(f'Optimal Temperature: {OptTemp}°C with rate {host.growth.umax} 1/h')
-        print(f'Tested Temperature: {TestTemp}°C with rate {host.growth.umax} 1/h')
-        return Help_GrowthConstant(OptTemp, TestTemp)
 
-    def simulate_monod( self, host_name:str, temps:List[float], samplevec:List[float], substrates:List[float], test=False ) -> DataOutcome :
+        self.spend_budget_or_abort(100)
+        ( df, pauses ) = host.growth.Make_TempGrowthExp(CultTemps=Temperatures, exp_suc_rate=self.suc_rate)
+
+        # wait = 0.001 # has to be adjusted, waiting time for loading bar
+        for pause in pauses :
+            loading_time = wait * pause.loading_len
+            Help_Progressbar(45, loading_time, pause.exp)
+
+        DataOutcome = GrowthOutcome(value=df)
+        # save DataReturn to csv
+        # relative path to the data folder
+        FilePath = os.path.join('..', 'Data', FileName)
+        DataOutcome.export_data(FilePath)
+
+        return DataOutcome
+
+        # TestUmax = Help_GrowthConstant(OptTemp, TestTemp)
+        # print(f'Optimal Temperature: {OptTemp}°C with rate {host.growth.umax} 1/h')
+        # print(f'Tested Temperature: {TestTemp}°C with rate {host.growth.umax} 1/h')
+        # return Help_GrowthConstant(OptTemp, TestTemp)
+
+    def measure_BiomassSubstrateExp( self, host_name:str, Temperature:float, Sampling:List[float], SubstrateConc:List[float], NightShift:float, FileName:str, wait:float = 0.01, Function='Monod' ) -> DataOutcome :
         """ Simulate a growth under multiple temperatures and return expected biomasses over time. 
         Args:
             host_name: name of the host
-            temps: list of temperatures
-            samplevec: array of (total sampling time, sample number) with shape (len(temps),2)
-            substrates: list of substrate concentrations
+            Temperature: float of temperature for the experiment
+            Sampling: array of (total experiment time in h, sampling interval in h) with shape (len(temps),2)
+            SubstrateConc: float of substrate concentration
+            NightShift: time of the night shift in h after which there are no measurements for 6h
+            FileName: name of the file to which the data is saved
+            Function: optional, function to be used for the simulation, default is Monod
         
         Returns:
             GrowthOutcome: dataframe with the expected biomass over time
@@ -135,7 +204,7 @@ class GrowthExperiment (Experiment) :
         if self.rnd_gen.pick_uniform(0,1) < self.suc_rate :
             return DataOutcome( None, 'Experiment failed, bad equipment.' )
 
-        if test == 'Test':
+        if Function == 'Test':
             import random
             samples = random.randint(8, 12)
             time = np.linspace(0, 10, samples)
@@ -145,19 +214,38 @@ class GrowthExperiment (Experiment) :
             DataReturn = DataOutcome(Result)
             DataPlot = GrowthOutcome(Result)
             DataPlot.make_plot()
-        elif test == 'Monod':
+
+        elif Function == 'Monod':
             Params={'mumax': host.growth.umax, 'Ks': host.growth.Ks, 'Yxs': host.growth.Yxs, 'max_biomass': host.growth.max_biomass}
-            Initials={'X0': 0.01, 'S0': float(substrates[0])}
-            t=np.linspace(0, samplevec[0], samplevec[1])
+            Initials={'X0': 0.01, 'S0': SubstrateConc}
+            time=np.linspace(0, Sampling[0], int(Sampling[0]/Sampling[1]))
+            # adding night shift
+            NightDuration = 6 # This long is a night without measurements
+            time = add_NightShift(time, NightShift, NightDuration)
+            # calculating the experiment price based on the number of samples
             BaseCost = 100
-            TotalCost = round(BaseCost * calculate_ExpPriceFactor(samplevec[1]))
+            TotalCost = round(BaseCost * calculate_ExpPriceFactor(len(time)))
             self.spend_budget_or_abort( TotalCost )
-            MonodSol = add_noise(solve_MonodEqn(Params, Initials, t), self.suc_rate)
-            Result = round(pd.DataFrame(np.vstack((t, MonodSol.T)).T, columns=['t', 'X', 'S']),3)
+            # adjusting the real growth rate based on the temperature in the experiment, using variance = 4, which leads to half maximum growth rate for 5C difference
+            Params['mumax'] = Params['mumax'] * Help_GrowthConstant(host.growth.opt_growth_temp, Temperature, 4)
+            # solving the Monod equation and adding noise
+            MonodSol = add_noise(solve_MonodEqn(Params, Initials, time), self.suc_rate)
+            Result = round(pd.DataFrame(np.vstack((time, MonodSol.T)).T, columns=['t', 'X', 'S']),3)
+            # Converting the dry weight to OD
+            Result['OD'] = Result['X'].apply(lambda x: round(X2OD(x, host.growth.OD2X),3))
+            # Deleting the column X
+            Result = Result.drop(columns=['X'])
+
+            # Experiments take time...
+            pause = len(time)
+            loading_time = wait * pause
+            Help_Progressbar(45, loading_time, ' experiment')
+
             DataReturn = DataOutcome(Result)
-            DataPlot = GrowthOutcome(Result)
-            DataPlot.make_plot()
-        elif test == 'Monod2':
+            # DataPlot = GrowthOutcome(Result)
+            # DataPlot.make_plot()
+
+        elif Function == 'Monod2':
             SampleNumber = samplevec[1] if samplevec[1] < len(range(samplevec[1])) else len(range(samplevec[1]))
             # calculating the experiment price based on the number of samples
             BaseCost = 100
@@ -174,7 +262,9 @@ class GrowthExperiment (Experiment) :
             DataPlot.make_plot()
 
         # save DataReturn to csv
-        DataReturn.export_data('ExperimentGrowthSubstrateRate.csv')
+        # relative path to the data folder
+        FilePath = os.path.join('..', 'Data', FileName)
+        DataReturn.export_data(FilePath)
         return DataReturn
 
 
@@ -186,6 +276,67 @@ class GrowthExperiment (Experiment) :
         print("  hosts = [ {} ]".format( " , ".join([h.name for h in self.hosts]) ))
         # Could display the status of each host if wanted.
 
+    def check_Results( self, host_name:str, Results:dict ) :
+        '''Check if the results are correct. Some parameters are individually checked, so the code is a little more complex...'''
+        host = self.find_host_or_abort(host_name)
+        # Reference dictionary to find the right parameter from Results in host growth
+        ParID_dict = {'Temperature':'opt_growth_temp', 
+                      'MaxBiomass':'max_biomass',
+                      'OD2X':'OD2X',
+                      'GrowthRate_Avg':'umax', 
+                      'GrowthRate':'umax', 
+                      'GrowthYield_Avg':'Yxs',
+                      'Ks':'Ks', 
+                      'GlcRateMax':'GlcRateMax'}
+        # Setting correct units for each parameter
+        Units_dict = {'Temperature':u'\u00b0C', 
+                'MaxBiomass':'gDW/L',
+                'OD2X':'a.u.',
+                'GrowthRate':'/h', 
+                'GrowthYield':'g/g',
+                'Ks':'g/L', 
+                'GlcRateMax':'mmol/gDW/h'}
+
+        # Delete all Results which are set to None
+        Results = {k: v for k, v in Results.items() if v is not None}
+        # Result comparison when standard deviations are available
+        for Parameter in np.unique([Parameter.split('_')[0] for Parameter in Results.keys()]):
+            if ''.join([Parameter,'_Std']) in Results.keys() and Parameter != 'GlcRateMax':
+                refval = getattr(host.growth, ParID_dict[''.join([Parameter,'_Avg'])]) #vars(host.growth)
+                value = Results[''.join([Parameter,'_Avg'])]
+                stdev = Results[''.join([Parameter,'_Std'])]
+                upper = value + stdev
+                lower = value - stdev
+            # only one value for the parameter exists, no standard deviation, e.g. Temperature
+                if  refval < upper and refval > lower:
+                    print(f'{Parameter}: {value}±{stdev} {Units_dict[Parameter]}',u'\u2705')
+                else:
+                    # calculating the fold of standard deviation between reference value and test value
+                    Fold = np.abs(value - refval)/stdev
+                    print(f'{Parameter}: {value}±{stdev} {Units_dict[Parameter]}', u'\u274C', f'Value is {Fold:.1f}x standard deviations from the reference value')
+            # calculating the solution for the maximum glucose uptake rate which is the quotient of maximum growth rate and yield coefficient
+            elif Parameter == 'GlcRateMax':
+                refval = getattr(host.growth,'umax')/getattr(host.growth,'Yxs')
+                value = Results[''.join([Parameter,'_Avg'])]
+                stdev = Results[''.join([Parameter,'_Std'])]
+                upper = value + stdev
+                lower = value - stdev
+            # only one value for the parameter exists, no standard deviation, e.g. Temperature
+                if  refval < upper and refval > lower:
+                    print(f'{Parameter}: {value}±{stdev} {Units_dict[Parameter]}',u'\u2705')
+                else:
+                    # calculating the fold of standard deviation between reference value and test value
+                    Fold = np.abs(value - refval)/stdev
+                    print(f'{Parameter}: {value}±{stdev} {Units_dict[Parameter]}', u'\u274C', f'Value is {Fold:.1f}x standard deviations from the reference value')
+            else:
+                # calculating ratio of experimental and theoretical value
+                Ratio = Results[Parameter]/getattr(host.growth,ParID_dict[Parameter])
+                # if Ratio close around 1 then the measurement is right:
+                if Ratio < 1.05 and Ratio > .95:
+                    print(f'{Parameter}: {Results[Parameter]} {Units_dict[Parameter]}',u'\u2705')
+                else:
+                    print(f'{Parameter}: {Results[Parameter]} {Units_dict[Parameter]}',u'\u274C')
+
 
 
 class GroHost (Host) :
@@ -193,9 +344,9 @@ class GroHost (Host) :
     growth: GrowthBehaviour
 
 
-    def make ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yxs:float, k1:float, umax:float) -> None :
+    def make ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yxs:float, k1:float, umax:float, OD2X:float ) -> None :
 
-        if not alldef( opt_growth_temp, max_biomass, Ks, Yxs, k1, umax ) :
+        if not alldef( opt_growth_temp, max_biomass, Ks, Yxs, k1, umax, OD2X ) :
             raise HostException("Host not initialized. Reason: incomplete arguments.")
 
         # Setup GrowthBehaviour module
@@ -204,7 +355,7 @@ class GroHost (Host) :
         self.max_biomass = max_biomass
 
         self.growth.make2(
-            opt_growth_temp=opt_growth_temp, max_biomass=max_biomass, Ks=Ks, Yxs=Yxs, k1=k1, umax=umax
+            opt_growth_temp=opt_growth_temp, max_biomass=max_biomass, Ks=Ks, Yxs=Yxs, k1=k1, umax=umax, OD2X=OD2X
         )
         self.growth.bind2( host=self )
 
@@ -402,3 +553,41 @@ def solve_MonodEqn(Params, Initials, t):
 
     # Return the result as a NumPy array
     return MonodSol
+
+def add_NightShift(time, NightStart, NightShift):
+    """
+    Add a night shift to the data. The night shift is a time period where no measurements are taken.
+    Args:
+    time: List, time vector
+    NightStart: Float, time point where the night shift starts
+    NightShift: Float, time period of the night shift
+
+    Returns:
+    time: List, time vector with night shift
+    """
+    # if the time vector/experiment is smaller than 15h there is no night shift
+    if time[-1] < 15:
+        return time
+    else:
+        # finding all nights in the sampling period
+        NightStart = np.arange(NightStart,time[-1],24)
+
+        # Get the index of the row with the value closest to NightStart
+        idx_start = np.abs(np.tile(time, (len(NightStart),1)).T - np.tile(NightStart, (len(time),1))).argmin(axis=0)
+        # Get the index of the row with the value closest to NightStart+NightShift
+        idx_end = np.abs(np.tile(time, (len(NightStart),1)).T - np.tile(NightStart+NightShift, (len(time),1))).argmin(axis=0)
+        # storing all indices for all night shifts
+        nights = np.hstack([np.arange(start,stop) for start, stop in zip(idx_start, idx_end)])
+        # Delete the rows between idx_start and idx_end
+        return np.delete(time, np.s_[nights])
+
+def OD2X(OD, OD2X):
+    """
+    Convert OD to biomass concentration.
+    """
+    return OD * OD2X
+def X2OD(X, OD2X):
+    """
+    Convert biomass concentration to OD.
+    """
+    return X / OD2X

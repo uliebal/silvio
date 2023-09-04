@@ -42,13 +42,14 @@ class GrowthBehaviour ( Module ) :
         self.opt_growth_temp = opt_growth_temp
         self.max_biomass = max_biomass
 
-    def make2 ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yxs:float, k1:float, umax:float ) -> None :
+    def make2 ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yxs:float, k1:float, umax:float, OD2X ) -> None :
         self.opt_growth_temp = opt_growth_temp
         self.max_biomass = max_biomass
         self.Ks = Ks
         self.Yxs = Yxs
         self.k1 = k1
         self.umax = umax
+        self.OD2X = OD2X
 
 
     def copy ( self, ref:'GrowthBehaviour' ) -> None :
@@ -112,7 +113,7 @@ class GrowthBehaviour ( Module ) :
         # Selecting the temperature that is most distant from the optimal temperature
         Temp_tmax = CultTemps[np.argmax(np.absolute(CultTemps-OptTemp))]
         # using the worst temperature to calculate lowest growth rate
-        r_tmax = Help_GrowthConstant(OptTemp, Temp_tmax)
+        r_tmax = self.umax * Help_GrowthConstant(OptTemp, Temp_tmax)
         # using the worst temperature growth rate to compute longest simulation time, maximum set to 72 h
         duration_tmax = d_mult * 1/r_tmax * np.log((capacity - P0)/P0) + 1
         t_max = np.arange(np.minimum(Exp_Duration, duration_tmax))
@@ -135,7 +136,7 @@ class GrowthBehaviour ( Module ) :
         for i in range(len(CultTemps)):
 
             if rnd.pick_uniform(0,1) > exp_suc_rate: # TODO: Too nested. # experiment failure depending on investment to equipment
-                r = Help_GrowthConstant(OptTemp, CultTemps[i])
+                r = self.umax * Help_GrowthConstant(OptTemp, CultTemps[i])
                 # the result can reach very small values, which poses downstream problems, hence the lowest value is set to 0.05
                 if r > 0.05: # under process conditions it might be realistic, source : https://www.thieme-connect.de/products/ebooks/pdf/10.1055/b-0034-10021.pdf
                     duration = Exp_Duration # d_mult * 1/r * np.log((capacity - P0)/P0) + 1

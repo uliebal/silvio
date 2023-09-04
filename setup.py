@@ -24,9 +24,21 @@ requirements = [
 
 test_requirements = ['pytest>=3', ]
 
+# getting the latest version from the __init__.py file in src/silvio
+import re
+import os
+VERSIONFILE = os.path.join('src', 'silvio', '__init__.py')
+verstrline = open(VERSIONFILE, "rt").read()
+VSRE = r"^__version__=['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    verstr = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+
 setup(
     name='silvio',
-    version='0.2',
+    version=verstr, # update version string in src/silvio/__init__.py
     url='https://git.rwth-aachen.de/ulf.liebal/silvio.git',
     author="Ulf Liebal",
     author_email='ulf.liebal@rwth-aachen.de',

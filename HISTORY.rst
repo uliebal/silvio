@@ -39,7 +39,21 @@ History
 * add cobra code dependencies
 * remove undelete_gene
 
-0.2 (2023-03-29)
+0.2.0 (2023-03-29)
 ------------------
 
 * add GroExpSim, a class to simulate growth experiments
+
+0.2.1 (2023-03-29)
+------------------
+
+* add storage of simulated data to Data folder
+
+0.2.2 (2023-03-29)
+------------------
+
+* GroExpSim with: 
+    * measure_DryWeight: measure the OD to DW conversion factor
+    * measure_TemperatureGrowth: measure the growth curve at different temperatures
+    * measure_BiomassSubstrateExp: measure the growth curve and substrate concentrations
+    * check_Results: check the results of the parameters
