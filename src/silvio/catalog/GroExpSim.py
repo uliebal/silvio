@@ -204,6 +204,9 @@ class GrowthExperiment (Experiment) :
         if self.rnd_gen.pick_uniform(0,1) < self.suc_rate :
             return DataOutcome( None, 'Experiment failed, bad equipment.' )
 
+        # The nightshift has to start within a day of the experiment and must be shorter than 15h
+        if NightShift > 15:
+            raise ExperimentException("Night shift is too late. It has to be within 15h of the experiment.")
         if Function == 'Test':
             import random
             samples = random.randint(8, 12)

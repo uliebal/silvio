@@ -57,3 +57,8 @@ History
     * measure_TemperatureGrowth: measure the growth curve at different temperatures
     * measure_BiomassSubstrateExp: measure the growth curve and substrate concentrations
     * check_Results: check the results of the parameters
+
+0.2.2 (2023-09-02)
+------------------
+
+* GroExpSim, nightshift must be within 15h of experiment
