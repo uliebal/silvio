@@ -44,12 +44,12 @@ History
 
 * add GroExpSim, a class to simulate growth experiments
 
-0.2.1 (2023-03-29)
+0.2.1 (2023-08-20)
 ------------------
 
 * add storage of simulated data to Data folder
 
-0.2.2 (2023-03-29)
+0.2.2 (2023-09-02)
 ------------------
 
 * GroExpSim with: 
