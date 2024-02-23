@@ -67,14 +67,21 @@ class GrowthExperiment (Experiment) :
     def build_host ( self, name:str, seed:int ) -> GroHost :
         gen = Generator( seed )
         host = GroHost( name=name, seed=seed )
+        opt_growth_temp= gen.pick_integer(25, 40) # unit: degree celsius, source: https://application.wiley-vch.de/books/sample/3527335153_c01.pdf
+        max_biomass= gen.pick_integer(30, 100) # unit: in gDW/L, source (german): https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=2ahUKEwjzt_aJ9pzpAhWGiqQKHb1jC6MQFjABegQIAhAB&url=https%3A%2F%2Fwww.repo.uni-hannover.de%2Fbitstream%2Fhandle%2F123456789%2F3512%2FDissertation.pdf%3Fsequence%3D1&usg=AOvVaw2XfGH11P9gK2F2B63mY4IM
+        Ks = round(gen.pick_uniform(1, 10), 3) # unit: gSubstrate/L, source: https://bionumbers.hms.harvard.edu/bionumber.aspx?s=n&v=3&id=111049, for K12
+        Yxs = round(gen.pick_uniform(.15, .55), 2) # unit: gDW/gSubstrate, source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4681042/
+        k1 = round(gen.pick_uniform(.05, .2), 3)
+        umax = round(gen.pick_uniform(.1, 2*Yxs), 3) # unit: /h, the maximum growth rate determines with the biomass yield the max glucose uptake rate. This should be below 10 mmol/gDW/h
+        OD2X = round(gen.pick_uniform(0.3, 0.5), 3)
         host.make(
-            opt_growth_temp= gen.pick_integer(25, 40), # unit: degree celsius, source: https://application.wiley-vch.de/books/sample/3527335153_c01.pdf
-            max_biomass= gen.pick_integer(30, 100), # unit: in gDCW/l, source (german): https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=2ahUKEwjzt_aJ9pzpAhWGiqQKHb1jC6MQFjABegQIAhAB&url=https%3A%2F%2Fwww.repo.uni-hannover.de%2Fbitstream%2Fhandle%2F123456789%2F3512%2FDissertation.pdf%3Fsequence%3D1&usg=AOvVaw2XfGH11P9gK2F2B63mY4IM
-            Ks = round(gen.pick_uniform(7, 10), 3),
-            Yxs = round(gen.pick_uniform(.4, .6), 2),
-            k1 = round(gen.pick_uniform(.05, .2), 3),
-            umax = round(gen.pick_uniform(.5, 1.1), 3),
-            OD2X = round(gen.pick_uniform(0.3, 0.5), 3)
+            opt_growth_temp=opt_growth_temp,
+            max_biomass=max_biomass,
+            Ks=Ks,
+            Yxs=Yxs,
+            k1=k1,
+            umax=umax,
+            OD2X=OD2X
         )
         host.sync()
         return host
@@ -202,6 +209,7 @@ class GrowthExperiment (Experiment) :
         host = self.find_host_or_abort(host_name)
         # Equipment failure can prematurely end the simulation.
         if self.rnd_gen.pick_uniform(0,1) < self.suc_rate :
+            print('Experiment failed, bad equipment.')
             return DataOutcome( None, 'Experiment failed, bad equipment.' )
 
         # The nightshift has to start within a day of the experiment and must be shorter than 15h
@@ -239,35 +247,40 @@ class GrowthExperiment (Experiment) :
             # Deleting the column X
             Result = Result.drop(columns=['X'])
 
-            # Experiments take time...
-            pause = len(time)
-            loading_time = wait * pause
-            Help_Progressbar(45, loading_time, ' experiment')
+            # # Experiments take time...
+            # pause = len(time)
+            # loading_time = wait * pause
+            # Help_Progressbar(45, loading_time, ' experiment')
 
             DataReturn = DataOutcome(Result)
             # DataPlot = GrowthOutcome(Result)
             # DataPlot.make_plot()
 
-        elif Function == 'Monod2':
-            SampleNumber = samplevec[1] if samplevec[1] < len(range(samplevec[1])) else len(range(samplevec[1]))
-            # calculating the experiment price based on the number of samples
-            BaseCost = 100
-            TotalCost = round(BaseCost * calculate_ExpPriceFactor(SampleNumber))
-            self.spend_budget_or_abort( TotalCost )
-            Variables = {'S': 0.5, 'P':0, 'X':.1, 'T': 25}
-            Params = {'Ks': 0.5, 'Yxs': 0.5, 'k1': 0.1, 'umax': 0.5}
-            allDat = pd.DataFrame.from_dict(makeMonod(Variables, Params, samplevec[0]))
-            # selecting data according to the sampling rate, i.e. using every nth row
-            ChooseRowAprx = np.round(np.linspace(0, samplevec[0]-1, SampleNumber))
-            Result = allDat.iloc[ChooseRowAprx, :]
-            DataReturn = DataOutcome(Result[['t', 'X', 'S']])
-            DataPlot = GrowthOutcome(Result[['t', 'X', 'S']])
-            DataPlot.make_plot()
+        # elif Function == 'Monod2':
+        #     SampleNumber = samplevec[1] if samplevec[1] < len(range(samplevec[1])) else len(range(samplevec[1]))
+        #     # calculating the experiment price based on the number of samples
+        #     BaseCost = 100
+        #     TotalCost = round(BaseCost * calculate_ExpPriceFactor(SampleNumber))
+        #     self.spend_budget_or_abort( TotalCost )
+        #     Variables = {'S': 0.5, 'P':0, 'X':.1, 'T': 25}
+        #     Params = {'Ks': 0.5, 'Yxs': 0.5, 'k1': 0.1, 'umax': 0.5}
+        #     allDat = pd.DataFrame.from_dict(makeMonod(Variables, Params, samplevec[0]))
+        #     # selecting data according to the sampling rate, i.e. using every nth row
+        #     ChooseRowAprx = np.round(np.linspace(0, samplevec[0]-1, SampleNumber))
+        #     Result = allDat.iloc[ChooseRowAprx, :]
+        #     DataReturn = DataOutcome(Result[['t', 'X', 'S']])
+        #     DataPlot = GrowthOutcome(Result[['t', 'X', 'S']])
+        #     DataPlot.make_plot()
 
-        # save DataReturn to csv
+        # # save DataReturn to csv
+        # # relative path to the data folder
+        # FilePath = os.path.join('..', 'Data', FileName)
+        # DataReturn.export_data(FilePath)
+        # save DataReturn to existing xlsx
         # relative path to the data folder
-        FilePath = os.path.join('..', 'Data', FileName)
-        DataReturn.export_data(FilePath)
+        FilePath = os.path.join('..', 'Data', 'GrowthExperiment_StandardFormat.xlsx')
+        sheet = FileName
+        DataReturn.append_data2xlsx(FilePath, sheet)
         return DataReturn
 
 
@@ -289,7 +302,7 @@ class GrowthExperiment (Experiment) :
                       'GrowthRate_Avg':'umax', 
                       'GrowthRate':'umax', 
                       'GrowthYield_Avg':'Yxs',
-                      'Ks':'Ks', 
+                      'Ks_Avg':'Ks', 
                       'GlcRateMax':'GlcRateMax'}
         # Setting correct units for each parameter
         Units_dict = {'Temperature':u'\u00b0C', 
@@ -319,7 +332,7 @@ class GrowthExperiment (Experiment) :
                     print(f'{Parameter}: {value}±{stdev} {Units_dict[Parameter]}', u'\u274C', f'Value is {Fold:.1f}x standard deviations from the reference value')
             # calculating the solution for the maximum glucose uptake rate which is the quotient of maximum growth rate and yield coefficient
             elif Parameter == 'GlcRateMax':
-                refval = getattr(host.growth,'umax')/getattr(host.growth,'Yxs')
+                refval = getattr(host.growth,'umax')/getattr(host.growth,'Yxs')/.18 # Yxs is given as g/g, but we need mmol/g
                 value = Results[''.join([Parameter,'_Avg'])]
                 stdev = Results[''.join([Parameter,'_Std'])]
                 upper = value + stdev
@@ -408,61 +421,61 @@ class GrowthOutcome ( DataWithPlotOutcome ) :
         ax.legend()
         return fig
 
-def makeMonod(Variables, Params, Duration):
-        # Get start parameters
-    # params = self.get_start_params(hidden_params)
-    umax, Ks, Yxs, k1, u = Params['umax'], Params['Ks'], Params['Yxs'], Params['k1'], [0]
-    S, P, X = [Variables['S']], [Variables['P']], [Variables['X']]
-    # Intial rates
-    rX = [u[0] * X[0]]
-    rS = [-(rX[0] / (Yxs / S[0]))]
-    rP = [(k1 * u[0]) * X[0]]
-    # return {'rX': rX, 'rS': rS, 'rP': rP}
-    t = [0]
-    for j in range(1, Duration):
-        new_u = round(umax * S[j - 1] / (Ks + S[j - 1]),3)       # Change of µ
-        if new_u >= 0:
-            u.append(new_u)
-        else:
-            u.append(0)
+# def makeMonod(Variables, Params, Duration):
+#         # Get start parameters
+#     # params = self.get_start_params(hidden_params)
+#     umax, Ks, Yxs, k1, u = Params['umax'], Params['Ks'], Params['Yxs'], Params['k1'], [0]
+#     S, P, X = [Variables['S']], [Variables['P']], [Variables['X']]
+#     # Intial rates
+#     rX = [u[0] * X[0]]
+#     rS = [-(rX[0] / (Yxs / S[0]))]
+#     rP = [(k1 * u[0]) * X[0]]
+#     # return {'rX': rX, 'rS': rS, 'rP': rP}
+#     t = [0]
+#     for j in range(1, Duration):
+#         new_u = round(umax * S[j - 1] / (Ks + S[j - 1]),3)       # Change of µ
+#         if new_u >= 0:
+#             u.append(new_u)
+#         else:
+#             u.append(0)
 
-        new_rX = round(u[j - 1] * X[j - 1], 3)                    # Derivative of Biomass
-        if new_rX >= 0:
-            rX.append(new_rX)
-        else:
-            rX.append(0)
-        X.append(round(X[j - 1] + rX[j], 3))                      # New [Biomass]
+#         new_rX = round(u[j - 1] * X[j - 1], 3)                    # Derivative of Biomass
+#         if new_rX >= 0:
+#             rX.append(new_rX)
+#         else:
+#             rX.append(0)
+#         X.append(round(X[j - 1] + rX[j], 3))                      # New [Biomass]
 
-        new_rS = round(-(rX[j - 1] / Yxs), 3)                      # Derivative of substrate
-        if new_rS <= 0:
-            rS.append(new_rS)
-        else:
-            rS.append(0)
-        new_S = S[j - 1] + rS[j]
-        if new_S < 0:
-            S.append(0)                                 # New [Substrate]
-        else:
-            S.append(new_S)
+#         new_rS = round(-(rX[j - 1] / Yxs), 3)                      # Derivative of substrate
+#         if new_rS <= 0:
+#             rS.append(new_rS)
+#         else:
+#             rS.append(0)
+#         new_S = S[j - 1] + rS[j]
+#         if new_S < 0:
+#             S.append(0)                                 # New [Substrate]
+#         else:
+#             S.append(new_S)
 
-        new_rP = round((k1 * u[j]) * X[j], 3)                     # Derivative of product
-        if new_rP >= 0:
-            rP.append(new_rP)
-        else:
-            rP.append(0)
+#         new_rP = round((k1 * u[j]) * X[j], 3)                     # Derivative of product
+#         if new_rP >= 0:
+#             rP.append(new_rP)
+#         else:
+#             rP.append(0)
 
-        P.append(round(P[j - 1] + rP[j], 3))                      # New [Product]
-        t.append(j)
-    monod_result = {
-            't': t,
-            'X': X,
-            'S': S,
-            'P': P,
-            'u': u,
-            'rX': rX,
-            'rS': rS,
-            'rP': rP
-            }
-    return monod_result
+#         P.append(round(P[j - 1] + rP[j], 3))                      # New [Product]
+#         t.append(j)
+#     monod_result = {
+#             't': t,
+#             'X': X,
+#             'S': S,
+#             'P': P,
+#             'u': u,
+#             'rX': rX,
+#             'rS': rS,
+#             'rP': rP
+#             }
+#     return monod_result
 
 def calculate_ExpPriceFactor(SampleAmount, PlotExample=False):
     '''logit function to generate the price-factor for amount of sampling
@@ -512,8 +525,8 @@ def MonodEqnODE(MonodVars, t, mumax, Ks, Yxs, max_biomass):
         MonodVars (list): list of variables [X, S]
         t (float): time
         mumax (float): maximum specific growth rate
-        Ks (float): half-saturation constant
-        Yxs (float): yield coefficient
+        Ks (float): half-saturation constant, unit: g/L
+        Yxs (float): yield coefficient, unit: gDW/gSubstrate
 
     Returns:
         list: list of derivatives [dX_dt, dS_dt]

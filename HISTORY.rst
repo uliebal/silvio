@@ -62,3 +62,8 @@ History
 ------------------
 
 * GroExpSim, nightshift must be within 15h of experiment
+
+0.2.5 (2024-02-22)
+------------------
+
+* GroExpSim, export single growth experiments to existing reference excel sheet
