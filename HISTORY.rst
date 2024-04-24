@@ -67,3 +67,8 @@ History
 ------------------
 
 * GroExpSim, export single growth experiments to existing reference excel sheet
+
+0.2.6 (2024-04-23)
+------------------
+
+* RecExpSim, add umax argument to 'make' in 'RecHost' for new argument demands of function 'Make_TempGrowthExp' in 'extesions/modules/growth_behaviour.py'

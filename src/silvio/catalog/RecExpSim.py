@@ -79,6 +79,7 @@ class RecExperiment (Experiment) :
         host.make(
             opt_growth_temp= gen.pick_integer(25,40), # unit: degree celsius, source: https://application.wiley-vch.de/books/sample/3527335153_c01.pdf
             max_biomass= gen.pick_integer(30,100), # unit: in gDCW/l, source (german): https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=2ahUKEwjzt_aJ9pzpAhWGiqQKHb1jC6MQFjABegQIAhAB&url=https%3A%2F%2Fwww.repo.uni-hannover.de%2Fbitstream%2Fhandle%2F123456789%2F3512%2FDissertation.pdf%3Fsequence%3D1&usg=AOvVaw2XfGH11P9gK2F2B63mY4IM
+            umax = 1, # standard growth rate for easier result check
             infl_prom_str= gen.pick_integer(30,50), # explanation see Plot_ExpressionRate
             species_prom_str= 0.057,
             opt_primer_len= gen.pick_integer(16,28), # unit: nt, source: https://link.springer.com/article/10.1007/s10529-013-1249-8
@@ -96,6 +97,7 @@ class RecExperiment (Experiment) :
         host.make(
             opt_growth_temp= gen.pick_integer(25,40), # unit: degree celsius, source: https://application.wiley-vch.de/books/sample/3527335153_c01.pdf
             max_biomass= gen.pick_integer(45,145), # unit: in gDCW/l, source 1: https://onlinelibrary.wiley.com/doi/pdf/10.1002/bit.25474, source 2: https://link.springer.com/article/10.1385/ABAB:119:1:51
+            umax = 1, # standard growth rate for easier result check
             infl_prom_str= gen.pick_integer(30,50), # explanation see Plot_ExpressionRate
             species_prom_str= 0.04,
             opt_primer_len= gen.pick_integer(16,28), # unit: nt, source: https://link.springer.com/article/10.1007/s10529-013-1249-8
@@ -281,7 +283,7 @@ class RecHost (Host) :
 
 
     def make ( self,
-        opt_growth_temp:int, max_biomass:int,
+        opt_growth_temp:int, max_biomass:int, umax:float,
         infl_prom_str:int, species_prom_str:int, opt_primer_len:int,
         regressor_file:Path, addparams_file:Path
     ) -> None :
@@ -309,7 +311,8 @@ class RecHost (Host) :
         self.growth = GrowthBehaviour()
         self.growth.make(
             opt_growth_temp=opt_growth_temp,
-            max_biomass=max_biomass
+            max_biomass=max_biomass,
+            umax = umax
         )
         self.growth.bind( host=self, genexpr=self.genexpr )
 

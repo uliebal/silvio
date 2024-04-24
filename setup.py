@@ -16,10 +16,11 @@ requirements = [
     'joblib >= 1.0',
     'matplotlib ~= 3.4',
     'numpy ~= 1.23',
-    'pandas ~= 1.2',
+    'pandas ~= 2.2',
     'pickleshare ~= 0.7',
     'scipy ~= 1.6',
     'jinja2<3.1.0',
+    'openpyxl'
 ]
 
 test_requirements = ['pytest>=3', ]

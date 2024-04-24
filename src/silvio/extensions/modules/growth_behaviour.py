@@ -38,9 +38,10 @@ class GrowthBehaviour ( Module ) :
 
 
 
-    def make ( self, opt_growth_temp:int, max_biomass:int ) -> None :
+    def make ( self, opt_growth_temp:int, max_biomass:int, umax:float ) -> None :
         self.opt_growth_temp = opt_growth_temp
         self.max_biomass = max_biomass
+        self.umax = umax
 
     def make2 ( self, opt_growth_temp:int, max_biomass:int , Ks:float, Yxs:float, k1:float, umax:float, OD2X ) -> None :
         self.opt_growth_temp = opt_growth_temp
