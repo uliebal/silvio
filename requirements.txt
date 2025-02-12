@@ -5,7 +5,8 @@ matplotlib == 3.5.1
 numpy == 1.23.5
 pandas == 2.2.2
 pickleshare ~= 0.7
-scipy == 1.6
+scikit-learn == 1.2.2
+scipy == 1.9.3
 jinja2 == 3.0.3
 openpyxl == 3.0.9
     

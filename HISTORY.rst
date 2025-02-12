@@ -77,3 +77,8 @@ History
 ------------------
 
 * add FermProSimFun to silvio/src
+
+0.2.8 (2025-02-12)
+------------------
+
+* update versions scipy, scikit-learn
