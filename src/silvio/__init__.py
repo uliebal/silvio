@@ -5,7 +5,7 @@
 # By doing this, all logic is inside this file and other __init__ files in the sub-folders can
 # stay empty.
 
-__version__='0.2.6'
+__version__='0.2.7'
 
 from .config import DATADIR
 from .experiment import Experiment, ExperimentException
