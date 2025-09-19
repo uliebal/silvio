@@ -10,21 +10,22 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-with open('requirements.txt') as req_file:
-    requirements = req_file.read()
+# with open('requirements.txt') as req_file:
+#     requirements = req_file.read()
 
-# requirements = [
-#     'biopython == 1.79',
-#     'cobra == 0.29.0',
-#     'joblib == 1.4.2',
-#     'matplotlib == 3.5.1',
-#     'numpy == 1.23.5',
-#     'pandas == 2.2.2',
-#     'pickleshare ~= 0.7',
-#     'scipy == 1.6',
-#     'jinja2 == 3.0.3',
-#     'openpyxl == 3.0.9'
-# ]
+requirements = [
+    'biopython == 1.79',
+    'cobra == 0.29.0',
+    'joblib == 1.4.2',
+    'matplotlib == 3.5.1',
+    'numpy == 1.23.5',
+    'pandas == 2.2.2',
+    'pickleshare ~= 0.7',
+    'scikit-learn == 1.2.2',
+    'scipy == 1.9.3',
+    'jinja2 == 3.0.3',
+    'openpyxl == 3.1.0'
+]
 
 test_requirements = ['pytest>=3', ]
 
@@ -63,7 +64,7 @@ setup(
     entry_points={},
     install_requires=requirements,
     license="MIT license",
-    long_description=readme + '\n\n' + history,
+    # long_description=readme + '\n\n' + history,
     include_package_data=True,
     keywords='biotechnology, microbiology, virtual cell, systems biology',
     package_dir={'': 'src'},

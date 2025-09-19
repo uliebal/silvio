@@ -219,8 +219,8 @@ class MonodModel:
         plt.plot(time, X, 'r', time, S, 'g', time, P, 'b')
         if offline_results is not None:
             off_time = offline_results.index + 1
-            off_X, off_S, off_P = offline_results['X'], offline_results['S'], offline_results['P']
-            plt.plot(off_time, off_X, 'r', off_time, off_S, 'g', off_time, off_P, 'b', linestyle='', marker='X')
+            off_X, off_S, off_P = offline_results['X'].values, offline_results['S'].values, offline_results['P'].values
+            plt.plot(off_time.values, off_X, 'r', off_time.values, off_S, 'g', off_time.values, off_P, 'b', linestyle='', marker='X')
 
         plt.legend(['Biomass [g/L]', 'Substrate [g/L]', 'Product [g/L]'])
         plt.ylabel('Biomass, Substrate & Product Concentration [g/L]')
@@ -334,7 +334,7 @@ class MonodModel:
         sampling_times = [0, 2, 4, 6, 8, 20, 23]
         offline_values = results.iloc[sampling_times][['X', 'S', 'P']]
 
-        pathname = os.path.relpath('offline_samples')
+        pathname = os.path.join('..','Data','FermProSim_samples')
         if not os.path.isdir(pathname):
             os.mkdir(pathname)
 
@@ -346,8 +346,8 @@ class MonodModel:
         filename = os.path.join(pathname, f'Experiment_{experiments_ID}_{self.__ModelName}.csv')
         offline_values.to_csv(filename)
 
-        time = offline_values.index
-        X, S, P = offline_values['X'], offline_values['S'], offline_values['P']
+        time = np.array(offline_values.index)
+        X, S, P = offline_values['X'].values, offline_values['S'].values, offline_values['P'].values
 
         plt.plot(time, X, 'r', time, S, 'g', time, P, 'b', linestyle='', marker='X')
         plt.legend(['Biomass [g/L]', 'Substrate [g/L]', 'Product [g/L]'])
@@ -472,7 +472,7 @@ class MonodModel:
         off_df.interpolate(inplace=True)
         rmse = sklearn.metrics.mean_squared_error([X, S, P], [off_df['X'], off_df['S'], off_df['P']], squared=False)
 
-        plt.plot(off_time, off_X, 'r', off_time, off_S, 'g', off_time, off_P, 'b', linestyle='--', marker='X')
+        plt.plot(off_time.values, off_X.values, 'r', off_time.values, off_S.values, 'g', off_time.values, off_P.values, 'b', linestyle='--', marker='X')
 
         plt.legend(['Biomass [g/L]', 'Substrate [g/L]', 'Product [g/L]'])
         plt.ylabel('Biomass, Substrate & Product Concentration [g/L]')

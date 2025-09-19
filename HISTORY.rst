@@ -82,3 +82,34 @@ History
 ------------------
 
 * update versions scipy, scikit-learn
+
+0.2.9 (2025-02-12)
+------------------
+
+* corrected matplotlib version error in FermProSimFun
+
+0.2.10 (2025-02-12)
+------------------
+
+* adjusted sample file storage in FermProSimFun
+
+0.2.11 (2025-02-12)
+------------------
+
+* added MetEngSimFun to silvio/src
+
+0.2.12 (2025-09-08)
+------------------
+
+* corrected Excel export in function 'append_data2xlsx' of 'outcome.py'
+
+0.2.13 (2025-09-19)
+------------------
+
+* add StrExpSim to silvio/src/catalog for Streamlit app
+* add Calc_GSMMGrowth to silvio/extensions/utils/misc.py for growth rate calculation from GSM model
+* add BIGG dictionary to silvio/extensions/common.py for model download
+* add GSMM to StrExpSim.make host class
+* add Help_CalcRate to silvio/extensions/utils/misc.py for carbon uptake rate estimation
+* add MetabolicFlux module to StrExpSim class for FBA simulation
+* add set_resetCarbonExchanges method to MetabolicFlux module for deactivating carbon exchange reactions in GSM model, using subfunctions: Help_getCarbonExchange, Help_setDeactivateCExchanges, Help_setActivateCExchanges in silvio/extensions/utils/misc.py

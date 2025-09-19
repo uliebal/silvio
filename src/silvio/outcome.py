@@ -71,34 +71,46 @@ class DataOutcome (Outcome) :
         print("Data exported to: {}".format(abs_filepath))
 
     def append_data2xlsx ( self, filepath , sheet) -> None :
+        ''' Append data to existing excel file, if it does not exist create a new one.
+            If the file exists, it will also copy metadata from the 'Reference' sheet to the new sheet.
+            
+            filepath: path to the excel file
+            sheet: name of the sheet to append the data to
+        '''
         abs_filepath = pathlib.Path(filepath).resolve()
-
-        book = load_workbook(abs_filepath)
-        writer = pd.ExcelWriter(abs_filepath, engine='openpyxl')
-        writer.book = book
-
-        #######################################################
-        # Metadata fields
-        # Extract range from sheet 'ref'
-        ref_sheet = book['Reference']
-        data_range = ref_sheet['A1:C14']  # Example range, adjust as needed
-        # Convert the extracted range into a list of lists
-        data_list = [[cell.value for cell in row] for row in data_range]
-
-        # Convert the list of lists into a DataFrame
-        meta_df = pd.DataFrame(data_list, columns=['Metadata: Key', 'Metadata: Value', 'Metadata: Comment'])  # Adjust column names as needed
-        meta_df.to_excel(writer, sheet_name=sheet, index=False, header=False)
-        #######################################################
 
         # rename columns of dataframe myDat
         self.value.rename(columns={'t': 'time', 'S': 'Substrate'}, inplace=True)
 
-        # Load the DataFrame 'myDat' into a new sheet in the Excel file
-        self.value.to_excel(writer, sheet_name=sheet, index=False, startrow=0, startcol=4)
+        if not abs_filepath.exists():
+            # Create a new Excel file with the DataFrame
+            with pd.ExcelWriter(abs_filepath, engine='openpyxl', mode='w') as writer:
+                self.value.rename(columns={'t': 'time', 'S': 'Substrate'}, inplace=True)
+                self.value.to_excel(writer, sheet_name=sheet, index=False, startrow=0, startcol=0)
+                return
+        else:
+            # Excel file for results already exists
+        # Load the existing workbook
+            with pd.ExcelWriter(abs_filepath, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+                # check if 'Reference' sheet exists
+                if 'Reference' in writer.book.sheetnames:
+                    # load metadata from 'Reference' sheet
+                    ref_sheet = writer.book['Reference']
+                    data_range = ref_sheet['A1:C15']  # Example range, adjust as needed
+                    # Convert the extracted range into a list of lists
+                    data_list = [[cell.value for cell in row] for row in data_range]
+                    # Convert the list of lists into a DataFrame
+                    meta_df = pd.DataFrame(data_list, columns=['Metadata: Key', 'Metadata: Value', 'Metadata: Comment'])  # Adjust column names as needed
+                    meta_df.to_excel(writer, sheet_name=sheet, index=False, header=False)
+                    # Append the new data to
+                    self.value.to_excel(writer, sheet_name=sheet, index=False, startrow=0, startcol=4)
+                else:
+                    self.value.to_excel(writer, sheet_name=sheet, index=False, startrow=0, startcol=4)                
+                return
 
         # Save the changes
-        writer.save()
-        # print(f"Data appended to: {abs_filepath} in sheet {sheet}")
+        writer.close()
+        # # print(f"Data appended to: {abs_filepath} in sheet {sheet}")
 
 
 

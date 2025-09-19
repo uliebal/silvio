@@ -3,13 +3,19 @@ Methods that are not yet assigned to another place. They usually include methods
 restructuring.
 TODO: Almost all of the methods inside this file can me integrated into module functions.
 """
+import os
+import wget
+import re
 
+from scipy.stats import norm
 from Bio.Seq import Seq
+from cobra.core.model import Model
+from cobra.io import load_json_model
 
 from ...random import pick_uniform
 from ...outcome import Outcome
 from .transform import list_onehot, list_integer
-
+from ...extensions.common import BIGG_dict
 
 
 def Sequence_ReferenceDistance(SeqObj, RefSeq):
@@ -129,9 +135,6 @@ def Help_GrowthConstant(OptTemp, CultTemp, var=5):
     Output:
         growth_rate_const: float, constant for use in logistic growth equation
     '''
-
-    from scipy.stats import norm
-
     r_pdf = norm(OptTemp, var)
     # calculation of the growth rate constant, by picking the activity from a normal distribution
 
@@ -139,6 +142,21 @@ def Help_GrowthConstant(OptTemp, CultTemp, var=5):
 
     return growth_rate_const
 
+
+def Calc_GSMMYield (model:Model, CarbExRxnID:str, MolarMass:float, UnitTest:bool=False) -> float :
+    '''Function to calculate the growth rate for a genome scale metabolic model. The substrate and its concentration is used from the user input. 
+    
+    Inputs:
+    '''
+
+    if UnitTest:
+        # for unit testing we want to have a fixed value
+        Yield = 0.5
+    else:
+        solution = model.optimize()
+        Yield = round(solution.objective_value / (abs(solution.fluxes[CarbExRxnID]) * MolarMass/1000),2)  # gDW / gSubstrate
+
+    return Yield
 
 
 def Growth_Maxrate(growth_rate_const, Biomass):
@@ -160,3 +178,93 @@ def Growth_Maxrate(growth_rate_const, Biomass):
     GrowthMax = Biomass * growth_rate_const / 4
 
     return GrowthMax
+
+def Download_GSMM (Organism:str, ModelDir:str = 'Data') -> Model :
+    '''Function to download a genome scale metabolic model from the BiGG database.
+    
+    Inputs:
+        Organism: str, name of the organism in the BiGG database, e.g. 'e_coli_core'
+        ModelFile: str, address to store the downloaded model
+    Outputs:
+        model: cobra Model, genome scale metabolic model
+    '''
+
+    ModelFile = os.path.join(ModelDir, f'{BIGG_dict[Organism]}.json')
+    if os.path.isfile(ModelFile):
+        # check if the file exists already
+        model = load_json_model(ModelFile)
+    else:
+        # download the model from the BiGG database
+        wget.download(f'http://bigg.ucsd.edu/static/models/{BIGG_dict[Organism]}.json')
+        # move the file to the target directory
+        os.rename(f'{BIGG_dict[Organism]}.json', ModelFile)
+        model = load_json_model(ModelFile)
+
+    return model
+
+def Help_getCarbonExchange (model:Model) -> list :
+    '''Function to get all carbon substrates from a genome scale metabolic model.
+    
+    Inputs:
+        model: cobra Model, genome scale metabolic model
+    Outputs:
+        CarbonExchange: list, list of all carbon substrates in the model
+    '''
+    CarbonExchange = []
+    for exchange in model.exchanges:
+        metab = list(exchange.metabolites.keys())[0]
+        # check if formula exist
+        if bool(metab.formula):
+            Carbon = bool(re.search(r'(?<![A-Za-z])C([A-Z]|\d)', metab.formula))
+            if Carbon: # 'C' in metab.formula:
+                CarbonExchange.append(exchange.id)
+
+    return CarbonExchange
+
+def Help_setDeactivateCExchanges (model:Model) -> Model :
+    '''Function to deactivate all carbon exchange reactions.
+    
+    Inputs:
+        model: cobra Model, genome scale metabolic model
+        CarbonExchange: list, list of all carbon exchange reactions in the model
+    Outputs:
+        model: cobra Model, genome scale metabolic model with deactivated carbon exchange reactions
+    '''
+    CarbonExchange = Help_getCarbonExchange(model)
+
+    for exchange in CarbonExchange:
+        model.reactions.get_by_id(exchange).lower_bound = 0  # deactivate uptake
+
+    return model
+
+# def Help_setActivateCExchanges (model:Model, CarbonSubstrate:dict) -> Model :
+#     '''Function to activate carbon exchange reactions with given uptake rates.
+    
+#     Inputs:
+#         model: cobra Model, genome scale metabolic model
+#         CarbonSubstrate: dict, dictionary with carbon substrates exchange reactions as keys and their uptake rates as values
+#     Outputs:
+#         model: cobra Model, genome scale metabolic model with activated carbon exchange reactions
+#     '''
+
+#     for ExRxn, rate in CarbonSubstrate.items():
+#         model.reactions.get_by_id(ExRxn).lower_bound = -abs(rate)  # activate uptake
+
+#     return model
+
+def Help_CalcRate(S, Vmax, Km, Law:str='Michaelis-Menten') -> float :
+    '''Function to calculate the carbon uptake rate based on Michaelis-Menten kinetics.
+    
+    Inputs:
+        S: float, substrate concentration in mM
+        Vmax: float, maximum uptake rate in mmol/gDW/h
+        Km: float, Michaelis constant in mM
+    Outputs:
+        Rate: float, uptake rate in mmol/gDW/h
+    '''
+    if Law == 'Michaelis-Menten':
+        Rate = (Vmax * S) / (Km + S)
+    else:
+        raise ValueError('Only Michaelis-Menten kinetics is implemented so far.')
+    return Rate
+
